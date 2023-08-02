@@ -1,0 +1,34 @@
+{
+    "data": {
+        "account": {
+            "createGraph": {
+                "id": "a-squared-digital-fu11o8d",
+                "graphType": "CLOUD_SUPERGRAPH",
+                "title": "A-Squared-Digital Supergraph",
+                "avatarUrl": null,
+                "description": "",
+                "hiddenFromUninvitedNonAdminAccountMembers": false,
+                "variants": [
+                    {
+                        "id": "a-squared-digital-fu11o8d@main",
+                        "name": "main",
+                        "isFavoriteOfCurrentUser": false,
+                        "isProtected": false,
+                        "isContract": false,
+                        "isPublic": false,
+                        "hasManagedSubgraphs": true,
+                        "latestLaunch": null,
+                        "activeSchemaPublish": null,
+                        "__typename": "GraphVariant"
+                    }
+                ],
+                "proposalVariants": {
+                    "totalCount": 0,
+                    "__typename": "ProposalVariantsResult"
+                },
+                "__typename": "Service"
+            },
+            "__typename": "AccountMutation"
+        }
+    }
+}
