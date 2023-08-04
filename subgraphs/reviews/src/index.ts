@@ -8,24 +8,36 @@ import { parse } from "graphql";
 import * as fs from "fs";
 import * as path from "path";
 
-const products = [{
+const reviews = [{
   id: "1",
-  name: "Product 1",
-  price: 1000,
+  productId: "1",
+  rating: 5,
+  body: "This is a great product!",
+  userId: "1",
 }, {
   id: "2",
-  name: "Product 2",
-  price: 3000,
+  productId: "1",
+  rating: 1,
+  body: "This is a terrible product!",
+  userId: "2",
+}, {
+  id: "3",
+  productId: "2",
+  rating: 3,
+  body: "This is an okay product!",
+  userId: "3",
 }]
 
 // A map of functions which return data for the schema.
 const resolvers = {
-  Query: {
-    products: () => products,
-  },
   Product: {
-    __resolveReference: (product: {id: string}) => products.find(({ id }) => id === product.id),
-  }
+    reviews: (product: {id: string}) => reviews.filter(({ productId }) => productId === product.id),
+  },
+  Review: {
+    __resolveReference: (review: {id: string}) => reviews.find(({ id }) => id === review.id),
+    user: (review: {userId: string}) => ({ __typename: "User", id: review.userId }),
+    product: (review: {productId: string}) => ({ __typename: "Product", id: review.productId }),
+  },
 };
 
 // Set up Apollo Server

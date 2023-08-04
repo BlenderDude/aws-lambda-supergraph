@@ -1,0 +1,27 @@
+{
+  "name": "handler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "gql": "graphql-codegen --config codegen.ts",
+    "build": "npm run gql && tsc"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@graphql-typed-document-node/core": "^3.2.0",
+    "graphql-request": "^6.1.0",
+    "reflect-metadata": "^0.1.13",
+    "tsyringe": "^4.8.0",
+    "zod": "^3.21.4"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "5.0.0",
+    "@graphql-codegen/client-preset": "4.1.0",
+    "@types/aws-lambda": "^8.10.119",
+    "aws-cdk-lib": "^2.89.0",
+    "constructs": "^10.2.69",
+    "typescript": "^5.1.6"
+  }
+}

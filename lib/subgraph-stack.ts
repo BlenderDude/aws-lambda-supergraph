@@ -2,6 +2,8 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as path from 'path';
+import * as fs from "fs";
+import * as GraphOS from "../custom-resources/graphos";
 
 interface AWSLambdaSubgraphStackProps extends cdk.StackProps {
   subgraph: string;
@@ -28,7 +30,6 @@ export class AWSLambdaSubgraphStack extends cdk.Stack {
       },
       invokeMode: lambda.InvokeMode.BUFFERED,
     });
-
 
     this.subgraphUrl = fnUrl.url;
   }
