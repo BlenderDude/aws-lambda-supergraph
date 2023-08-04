@@ -13,8 +13,9 @@ export class CDKPipelineStack extends cdk.Stack {
         input: CodePipelineSource.gitHub('BlenderDude/aws-lambda-supergraph', 'main', {
           authentication: cdk.SecretValue.secretsManager('github-token')
         }),
-        commands: ['npm ci', 'npm run build', 'npx cdk synth']
-      })
+        commands: ['npm ci', 'npm run build', 'npx cdk synth'],
+      }),
+      dockerEnabledForSynth: true,
     });
     
     pipeline.addStage(new SupergraphStage(this, 'LambdaSupergraph'));
