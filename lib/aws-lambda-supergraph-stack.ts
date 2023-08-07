@@ -21,20 +21,22 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
     // Create a subgraph for each application in the `subgraphs` directory
     for (const subgraphName of ["products", "reviews", "users"]) {
       // Create subgraph function from Dockerfile in each subgraph
-      const fn = new lambda.Function(this, subgraphName + '-SubgraphFunction', {
+      const fn = new lambda.Function(this, subgraphName + "-SubgraphFunction", {
         runtime: lambda.Runtime.NODEJS_18_X,
-        code: lambda.Code.fromDockerBuild(path.join(process.cwd(), 'subgraphs', subgraphName)),
-        handler: 'dist/index.default',
+        code: lambda.Code.fromDockerBuild(
+          path.join(process.cwd(), "subgraphs", subgraphName)
+        ),
+        handler: "dist/index.default",
       });
-  
+
       // Allow the Supergraph to access the subgraph via a function url
       // TODO SigV4 auth when implemented
-      const {url} = fn.addFunctionUrl({
+      const { url } = fn.addFunctionUrl({
         authType: lambda.FunctionUrlAuthType.NONE,
         cors: {
           allowCredentials: true,
-          allowedHeaders: ['*'],
-          allowedOrigins: ['*'],
+          allowedHeaders: ["*"],
+          allowedOrigins: ["*"],
         },
         invokeMode: lambda.InvokeMode.BUFFERED,
       });
@@ -43,15 +45,15 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
       const sdl = fs.readFileSync(
         path.join(process.cwd(), "subgraphs", subgraphName, "schema.graphql"),
         "utf8"
-      )
+      );
 
       variant.addSubgraph(subgraphName, {
         sdl,
         url,
       });
     }
-    
-    const {url} = graph.addVariant(variant);
+
+    const { url } = graph.addVariant(variant);
 
     // Output the Supergraph URL
     new cdk.CfnOutput(this, "SupergraphUrl", {
@@ -60,7 +62,7 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
 
     // Sandbox URL
     new cdk.CfnOutput(this, "SandboxUrl", {
-      value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${url}`
+      value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${url}`,
     });
   }
 }

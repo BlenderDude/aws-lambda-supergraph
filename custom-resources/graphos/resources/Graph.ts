@@ -67,7 +67,7 @@ export class Graph extends Construct {
       properties: {
         apiKey: this.apiKey,
         graphId: this.graphId,
-        name,
+        name: variant.name,
         subgraphs: variant.subgraphs,
       },
     });
