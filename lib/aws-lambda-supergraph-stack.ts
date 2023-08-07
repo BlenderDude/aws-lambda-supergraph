@@ -64,5 +64,10 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
     new cdk.CfnOutput(this, "SupergraphUrl", {
       value: variant.url,
     });
+
+    // Sandbox URL
+    new cdk.CfnOutput(this, "SandboxUrl", {
+      value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${variant.url}`
+    });
   }
 }
