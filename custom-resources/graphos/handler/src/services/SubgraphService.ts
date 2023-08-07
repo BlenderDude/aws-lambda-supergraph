@@ -9,12 +9,18 @@ export class SubgraphService {
   async synchronizeSubgraphs(
     graphId: string,
     revision: string,
-    variants: Record<string, {
-      subgraphs: Record<string, {
-        sdl: string;
-        url: string;
-      }>;
-    }>
+    variants: Record<
+      string,
+      {
+        subgraphs: Record<
+          string,
+          {
+            sdl: string;
+            url: string;
+          }
+        >;
+      }
+    >
   ) {
     const existing = await this.apolloRequestService.request(
       graphql(`
@@ -37,50 +43,51 @@ export class SubgraphService {
       }
     );
 
-    if(!existing.graph) {
+    if (!existing.graph) {
       throw new Error(`Graph ${graphId} does not exist`);
     }
 
     const variantsToDelete: string[] = [];
 
-    for(const variant of existing.graph.variants) {
-      if(!variants[variant.name]) {
+    for (const variant of existing.graph.variants) {
+      if (!variants[variant.name]) {
         variantsToDelete.push(variant.name);
       }
     }
 
-    for(const variantToDelete of variantsToDelete) {
-      await this.apolloRequestService.request(
-        graphql(`
-          mutation DeleteVariant(
-            $graphId: ID!
-            $graphVariant: String!
-          ) {
-            graph(id: $graphId) {
-              variant(name: $graphVariant) {
-                delete {
-                  deleted
+    for (const variantToDelete of variantsToDelete) {
+      try {
+        await this.apolloRequestService.request(
+          graphql(`
+            mutation DeleteVariant($graphId: ID!, $graphVariant: String!) {
+              graph(id: $graphId) {
+                variant(name: $graphVariant) {
+                  delete {
+                    deleted
+                  }
                 }
               }
             }
+          `),
+          {
+            graphId,
+            graphVariant: variantToDelete,
           }
-        `),
-        {
-          graphId,
-          graphVariant: variantToDelete,
-        }
-      );
+        );
+      } catch {}
     }
 
-    for(const [variantName, variant] of Object.entries(variants)) {
+    for (const [variantName, variant] of Object.entries(variants)) {
       const subgraphsToDelete: string[] = [];
-      const existingSubgraphs = existing.graph.variants.find(v => v.name === variantName)?.subgraphs ?? [];
-      for(const subgraph of existingSubgraphs) {
-        if(!variant.subgraphs[subgraph.name]) {
+      const existingSubgraphs =
+        existing.graph.variants.find((v) => v.name === variantName)
+          ?.subgraphs ?? [];
+      for (const subgraph of existingSubgraphs) {
+        if (!variant.subgraphs[subgraph.name]) {
           subgraphsToDelete.push(subgraph.name);
         }
       }
-      for(const subgraphToDelete of subgraphsToDelete) {
+      for (const subgraphToDelete of subgraphsToDelete) {
         await this.apolloRequestService.request(
           graphql(`
             mutation DeleteSubgraphInVariant(
@@ -107,17 +114,29 @@ export class SubgraphService {
         );
       }
 
-      const subgraphsToPublish = Object.entries(variant.subgraphs).filter(([name, subgraph]) => {
-        const existingSubgraph = existingSubgraphs.find(s => s.name === name);
-        return !existingSubgraph || existingSubgraph.activePartialSchema.sdl !== subgraph.sdl;
-      }).map(([name, subgraph]) => ({
-        name,
-        sdl: subgraph.sdl,
-        url: subgraph.url,
-      }));
+      const subgraphsToPublish = Object.entries(variant.subgraphs)
+        .filter(([name, subgraph]) => {
+          const existingSubgraph = existingSubgraphs.find(
+            (s) => s.name === name
+          );
+          return (
+            !existingSubgraph ||
+            existingSubgraph.activePartialSchema.sdl !== subgraph.sdl
+          );
+        })
+        .map(([name, subgraph]) => ({
+          name,
+          sdl: subgraph.sdl,
+          url: subgraph.url,
+        }));
 
-      if(subgraphsToPublish.length > 0) {
-        await this.publishSubgraphs(graphId, variantName, revision, subgraphsToPublish);
+      if (subgraphsToPublish.length > 0) {
+        await this.publishSubgraphs(
+          graphId,
+          variantName,
+          revision,
+          subgraphsToPublish
+        );
       }
     }
   }
