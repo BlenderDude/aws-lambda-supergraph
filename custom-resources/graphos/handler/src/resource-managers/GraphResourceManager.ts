@@ -9,18 +9,6 @@ const GraphPropertiesSchema = z.object({
   accountId: z.string().optional(),
   title: z.string(),
   hiddenFromUninvitedNonAdmin: z.boolean().default(false),
-  variants: z.record(
-    z.string(),
-    z.strictObject({
-      subgraphs: z.record(
-        z.string(),
-        z.strictObject({
-          sdl: z.string(),
-          url: z.string(),
-        })
-      ),
-    })
-  ),
 });
 
 const GraphDataSchema = z.object({
@@ -47,7 +35,6 @@ export class GraphResourceManager extends ResourceManager<
             hiddenFromUninvitedNonAdmin:
               event.ResourceProperties.hiddenFromUninvitedNonAdmin,
             graphType: GraphType.CloudSupergraph,
-            variants: event.ResourceProperties.variants,
           },
           event.ResourceProperties.accountId
         );
@@ -69,7 +56,6 @@ export class GraphResourceManager extends ResourceManager<
           hiddenFromUninvitedNonAdmin:
             event.ResourceProperties.hiddenFromUninvitedNonAdmin,
           graphType: GraphType.CloudSupergraph,
-          variants: event.ResourceProperties.variants,
         });
         return {
           Data: {

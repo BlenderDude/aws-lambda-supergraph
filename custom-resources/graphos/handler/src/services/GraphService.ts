@@ -10,12 +10,6 @@ export interface GraphProps {
   title: string;
   hiddenFromUninvitedNonAdmin: boolean;
   graphType: GraphType;
-  variants: Record<string, {
-    subgraphs: Record<string, {
-      sdl: string;
-      url: string;
-    }>;
-  }>;
 }
 
 @injectable()
@@ -77,14 +71,6 @@ export class GraphService {
         `Could not create graph: Response was ${JSON.stringify(data)}`
       );
     }
-
-    const graphId = data.account.createGraph.id;
-
-    await this.subgraphService.synchronizeSubgraphs(
-      graphId,
-      crypto.randomBytes(8).toString("hex"),
-      properties.variants
-    );
   }
 
   public async updateGraph(
@@ -107,12 +93,6 @@ export class GraphService {
         graphId: properties.id,
         title: properties.title,
       }
-    )
-
-    await this.subgraphService.synchronizeSubgraphs(
-      properties.id,
-      crypto.randomBytes(8).toString("hex"),
-      properties.variants
     );
   }
 

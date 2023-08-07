@@ -1,3 +1,2 @@
-export * from "./graph/resource";
-export * from "./subgraph/resource";
-export * from "./subgraphs/resource";
+export { Graph } from "./resources/Graph";
+export { GraphVariant } from "./resources/GraphVariant";

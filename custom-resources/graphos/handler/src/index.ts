@@ -3,8 +3,7 @@ import {OnEventRequest, OnEventResponse} from "aws-cdk-lib/custom-resources/lib/
 import { container as globalContainer } from "tsyringe";
 import { GraphResourceManager } from "./resource-managers/GraphResourceManager";
 import { ResourceManager } from "./resource-managers/ResourceManager";
-import { SubgraphResourceManager } from "./resource-managers/SubgraphResourceManager";
-import { SubgraphsResourceManager } from "./resource-managers/SubgraphsResourceManager";
+import { GraphVariantResourceManager } from "./resource-managers/GraphVariantResourceManager";
 
 type ResourceMap = Record<
   string,
@@ -13,8 +12,7 @@ type ResourceMap = Record<
 
 const resourceMap: ResourceMap = {
   "Custom::GraphOS-Graph": GraphResourceManager,
-  "Custom::GraphOS-Subgraph": SubgraphResourceManager,
-  "Custom::GraphOS-Subgraphs": SubgraphsResourceManager,
+  "Custom::GraphOS-GraphVariant": GraphVariantResourceManager,
 };
 
 export async function handler(
