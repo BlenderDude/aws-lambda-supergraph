@@ -9,11 +9,16 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // Create/Update the Supergraph
+    const graph = new graphos.Graph(this, "Supergraph", {
+      apiKey: "user:gh.BlenderDude:jlr1D1NssA54Ty2ZaWnJdg",
+      title: "Store Supergraph",
+    });
+
+    // Create variant
+    const variant = new graphos.GraphVariant("main");
+
     // Create a subgraph for each application in the `subgraphs` directory
-    const subgraphs: Record<string, {
-      sdl: string;
-      url: string;
-    }> = {};
     for (const subgraphName of ["products", "reviews", "users"]) {
       // Create subgraph function from Dockerfile in each subgraph
       const fn = new lambda.Function(this, subgraphName + '-SubgraphFunction', {
@@ -40,34 +45,22 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
         "utf8"
       )
 
-      subgraphs[subgraphName] = {
+      variant.addSubgraph(subgraphName, {
         sdl,
         url,
-      }
+      });
     }
-
-    // Create/Update the Supergraph
-    const graph = new graphos.Graph(this, "Supergraph", {
-      apiKey: "user:gh.BlenderDude:jlr1D1NssA54Ty2ZaWnJdg",
-      title: "Store Supergraph",
-    });
-
-    // Create variant
-    const variant = new graphos.GraphVariant(this, "SupergraphVariant", {
-      apiKey: "user:gh.BlenderDude:jlr1D1NssA54Ty2ZaWnJdg",
-      graphId: graph.graphId,
-      name: "main",
-      subgraphs,
-    });
+    
+    const {url} = graph.addVariant(variant);
 
     // Output the Supergraph URL
     new cdk.CfnOutput(this, "SupergraphUrl", {
-      value: variant.url,
+      value: url,
     });
 
     // Sandbox URL
     new cdk.CfnOutput(this, "SandboxUrl", {
-      value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${variant.url}`
+      value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${url}`
     });
   }
 }

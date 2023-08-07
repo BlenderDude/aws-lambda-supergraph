@@ -6,11 +6,11 @@ type Review {
   user: User!
 }
 
-type User @key(fields: "id") {
+type User @key(fields: "id", resolvable: false) {
   id: ID!
 }
 
-type Product @key(fields: "id") {
+type Product @key(fields: "id", resolvable: false) {
   id: ID!
   reviews: [Review!]!
 }
