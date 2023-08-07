@@ -53,16 +53,16 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
       });
     }
 
-    const { url } = graph.addVariant(variant);
+    // const { url } = graph.addVariant(variant);
 
-    // Output the Supergraph URL
-    new cdk.CfnOutput(this, "SupergraphUrl", {
-      value: url,
-    });
+    // // Output the Supergraph URL
+    // new cdk.CfnOutput(this, "SupergraphUrl", {
+    //   value: url,
+    // });
 
-    // Sandbox URL
-    new cdk.CfnOutput(this, "SandboxUrl", {
-      value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${url}`,
-    });
+    // // Sandbox URL
+    // new cdk.CfnOutput(this, "SandboxUrl", {
+    //   value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${url}`,
+    // });
   }
 }
