@@ -59,10 +59,7 @@ export class GraphService {
       }
     );
 
-    if (
-      data &&
-      data.account?.createGraph?.__typename === "GraphCreationError"
-    ) {
+    if (data && data.account?.createGraph?.__typename === "GraphCreationError") {
       throw new Error(data.account.createGraph.message);
     }
 

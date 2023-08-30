@@ -4,6 +4,7 @@ import { container as globalContainer } from "tsyringe";
 import { GraphResourceManager } from "./resource-managers/GraphResourceManager";
 import { ResourceManager } from "./resource-managers/ResourceManager";
 import { GraphVariantResourceManager } from "./resource-managers/GraphVariantResourceManager";
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 
 type ResourceMap = Record<
   string,
@@ -16,13 +17,25 @@ const resourceMap: ResourceMap = {
 };
 
 export async function handler(
-  event: OnEventRequest
+  event: OnEventRequest,
 ): Promise<OnEventResponse> {
   const container = globalContainer.createChildContainer();
 
-  container.register("ApolloGraphQLAPIKey", {
-    useValue: event.ResourceProperties.apiKey,
-  });
+  if(event.ResourceProperties.apiKey.value) {
+    container.register("ApolloGraphQLAPIKey", {
+      useValue: event.ResourceProperties.apiKey,
+    });
+  } else if (event.ResourceProperties.apiKey.secretArn) {
+    const client = new SecretsManagerClient({});
+    const result = await client.send(new GetSecretValueCommand({
+      SecretId: event.ResourceProperties.apiKey.secretArn,
+    }));
+    container.register("ApolloGraphQLAPIKey", {
+      useValue: result.SecretString!,
+    });
+  } else {
+    throw new Error("No API Key provided");
+  }
 
   const resourceManager = container.resolve(resourceMap[event.ResourceType]);
 

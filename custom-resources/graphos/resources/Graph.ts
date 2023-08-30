@@ -19,7 +19,11 @@ interface GraphOSGraphProps {
   /**
    * API Key
    */
-  apiKey: string;
+  apiKey: {
+    value: string;
+  } | {
+    secretArn: string;
+  };
   /**
    * Account ID
    */
@@ -30,7 +34,11 @@ export class Graph extends Construct {
   public readonly title: string;
   public readonly hiddenFromUninvitedNonAdmin: boolean;
   public readonly graphId: string;
-  private apiKey: string;
+  private apiKey: {
+    value: string;
+  } | {
+    secretArn: string;
+  };
 
   constructor(scope: Construct, id: string, props: GraphOSGraphProps) {
     super(scope, id);
@@ -39,8 +47,10 @@ export class Graph extends Construct {
       throw new Error("Title must be less than 64 characters");
     }
 
+    this.apiKey = props.apiKey;
+
     const resource = new cdk.CustomResource(this, "Graph", {
-      serviceToken: GraphOSProvider.getOrCreate(this),
+      serviceToken: GraphOSProvider.getOrCreate(this, 'secretArn' in this.apiKey && this.apiKey.secretArn || undefined),
       resourceType: "Custom::GraphOS-Graph",
       properties: {
         title: props.title,
@@ -49,8 +59,6 @@ export class Graph extends Construct {
         accountId: props.accountId,
       },
     });
-
-    this.apiKey = props.apiKey;
 
     this.graphId = resource.getAttString("Id");
     this.title = resource.getAttString("Title");
@@ -62,7 +70,7 @@ export class Graph extends Construct {
     variant: GraphVariant,
   ) {
     const resource = new cdk.CustomResource(this, "GraphVariant-" + variant.name, {
-      serviceToken: GraphOSProvider.getOrCreate(this),
+      serviceToken: GraphOSProvider.getOrCreate(this, 'secretArn' in this.apiKey && this.apiKey.secretArn || undefined),
       resourceType: "Custom::GraphOS-GraphVariant",
       properties: {
         apiKey: this.apiKey,

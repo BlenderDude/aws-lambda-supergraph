@@ -11,12 +11,18 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
 
     // Create/Update the Supergraph
     const graph = new graphos.Graph(this, "Supergraph", {
-      apiKey: "user:gh.BlenderDude:jlr1D1NssA54Ty2ZaWnJdg",
+      apiKey: {
+        secretArn: "arn:aws:secretsmanager:us-east-1:554735917704:secret:graphos-api-key-LntOiW",
+      },
       title: "Store Supergraph",
     });
 
     // Create variant
-    const variant = new graphos.GraphVariant("main");
+    const variant = new graphos.GraphVariant("main", {
+      cors: {
+        origins: ["https://studio.apollographql.com"],
+      }
+    });
 
     // Create a subgraph for each application in the `subgraphs` directory
     for (const subgraphName of ["products", "reviews", "users"]) {
@@ -53,6 +59,7 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
       });
     }
 
+
     const { url } = graph.addVariant(variant);
 
     // Output the Supergraph URL
@@ -63,6 +70,10 @@ export class AWSLambdaSupergraphStack extends cdk.Stack {
     // Sandbox URL
     new cdk.CfnOutput(this, "SandboxUrl", {
       value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${url}`,
+    });
+
+    new cdk.CfnOutput(this, "ExplorerURL", {
+      value: `https://studio.apollographql.com/graph/${graph.graphId}/variant/${variant.name}/explorer`,
     });
   }
 }

@@ -88,30 +88,32 @@ export class SubgraphService {
         }
       }
       for (const subgraphToDelete of subgraphsToDelete) {
-        await this.apolloRequestService.request(
-          graphql(`
-            mutation DeleteSubgraphInVariant(
-              $graphId: ID!
-              $graphVariant: String!
-              $name: String!
-            ) {
-              graph(id: $graphId) {
-                removeImplementingServiceAndTriggerComposition(
-                  graphVariant: $graphVariant
-                  dryRun: false
-                  name: $name
-                ) {
-                  didExist
+        try {
+          await this.apolloRequestService.request(
+            graphql(`
+              mutation DeleteSubgraphInVariant(
+                $graphId: ID!
+                $graphVariant: String!
+                $name: String!
+              ) {
+                graph(id: $graphId) {
+                  removeImplementingServiceAndTriggerComposition(
+                    graphVariant: $graphVariant
+                    dryRun: false
+                    name: $name
+                  ) {
+                    didExist
+                  }
                 }
               }
+            `),
+            {
+              graphId,
+              graphVariant: variantName,
+              name: subgraphToDelete,
             }
-          `),
-          {
-            graphId,
-            graphVariant: variantName,
-            name: subgraphToDelete,
-          }
-        );
+          );
+        } catch (e) {}
       }
 
       const subgraphsToPublish = Object.entries(variant.subgraphs)
