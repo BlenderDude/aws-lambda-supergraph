@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { AWSLambdaSupergraphStack } from '../lib/aws-lambda-supergraph-stack';
+import { PipelineStack } from '../lib/pipeline-stack';
 
 const app = new cdk.App();
-new AWSLambdaSupergraphStack(app, 'AWSLambdaSupergraphStack', {});
+new PipelineStack(app, 'Pipeline', {});
