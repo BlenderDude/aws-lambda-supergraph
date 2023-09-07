@@ -43,7 +43,7 @@ export class PipelineStack extends cdk.Stack {
     for(const subgraphName of ["products", "reviews", "users"]) {
       const subgraphDir = `subgraphs/${subgraphName}`;
       wave.addPost(
-        new pipelines.ShellStep("Deploy-" + subgraphName, {
+        new pipelines.ShellStep("Check-" + subgraphName, {
           commands: [
             `rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
           ],
