@@ -8,6 +8,9 @@ interface LambdaSubgraphProps extends cdk.StackProps {
 }
 
 export class LambdaSubgraph extends cdk.Stack {
+
+  public url: string;
+
   constructor(scope: Construct, id: string, props: LambdaSubgraphProps) {
     super(scope, id, props);
 
@@ -33,5 +36,6 @@ export class LambdaSubgraph extends cdk.Stack {
         invokeMode: lambda.InvokeMode.BUFFERED,
       });
 
+      this.url = url;
   }
 }
