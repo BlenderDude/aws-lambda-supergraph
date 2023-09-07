@@ -45,7 +45,7 @@ export class PipelineStack extends cdk.Stack {
       wave.addPost(
         new pipelines.ShellStep("Check-" + subgraphName, {
           commands: [
-            `rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
+            `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
           ],
           env: {
             APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw"
