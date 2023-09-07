@@ -25,6 +25,7 @@ export class PipelineStack extends cdk.Stack {
       }),
       dockerEnabledForSynth: true,
       dockerEnabledForSelfMutation: true,
+      publishAssetsInParallel: false,
     });
 
     const graphRef = "cloud-test@main";
@@ -69,7 +70,10 @@ export class PipelineStack extends cdk.Stack {
           ],
           envFromCfnOutputs: {
             ROUTING_URL: subgraph.url,
-          }
+          },
+          env: {
+            APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
+          },
         })
       )
     }
