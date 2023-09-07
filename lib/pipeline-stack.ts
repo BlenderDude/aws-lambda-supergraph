@@ -41,6 +41,7 @@ export class PipelineStack extends cdk.Stack {
                 "curl -sSL https://rover.apollo.dev/nix/latest | sh",
               ],
               commands: [
+                `/root/.rover/bin/rover config whoami`,
                 `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
               ],
               env: {
