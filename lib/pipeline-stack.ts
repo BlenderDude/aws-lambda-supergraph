@@ -14,16 +14,10 @@ export class PipelineStack extends cdk.Stack {
           "BlenderDude/aws-lambda-supergraph",
           "main",
           {
-            authentication: cdk.SecretValue.secretsManager(
-              "github-token",
-            ),
-          },
+            authentication: cdk.SecretValue.secretsManager("github-token"),
+          }
         ),
-        commands: [
-          "npm ci",
-          "npm run build",
-          "npx cdk synth",
-        ],
+        commands: ["npm ci", "npm run build", "npx cdk synth"],
       }),
       dockerEnabledForSynth: true,
       dockerEnabledForSelfMutation: true,
@@ -31,25 +25,31 @@ export class PipelineStack extends cdk.Stack {
 
     const graphRef = "cloud-test@main";
 
-    for(const subgraphName of ["products", "reviews", "users"]) {
+    for (const subgraphName of [
+      "products",
+      //"reviews", "users"
+    ]) {
       const subgraphDir = `subgraphs/${subgraphName}`;
-      pipeline.addStage(new SubgraphStage(this, subgraphName + "-Subgraph", {
-        subgraphName,
-      }), {
-        pre: [
-          new pipelines.ShellStep("Check-" + subgraphName, {
-            installCommands: [
-              "curl -sSL https://rover.apollo.dev/nix/latest | sh",
-            ],
-            commands: [
-              `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
-            ],
-            env: {
-              APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw"
-            },
-          })
-        ]
-      });
+      pipeline.addStage(
+        new SubgraphStage(this, subgraphName + "-Subgraph", {
+          subgraphName,
+        }),
+        {
+          pre: [
+            new pipelines.ShellStep("Check-" + subgraphName, {
+              installCommands: [
+                "curl -sSL https://rover.apollo.dev/nix/latest | sh",
+              ],
+              commands: [
+                `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
+              ],
+              env: {
+                APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
+              },
+            }),
+          ],
+        }
+      );
     }
   }
 }
