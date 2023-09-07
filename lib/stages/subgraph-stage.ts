@@ -14,10 +14,8 @@ export class SubgraphStage extends cdk.Stage {
 
     const subgraph = new LambdaSubgraph(this, props.subgraphName + "-Subgraph", {
       subgraphName: props.subgraphName,
-    })
-
-    this.url = new cdk.CfnOutput(this, "SubgraphUrl", {
-      value: subgraph.url,
     });
+
+    this.url = subgraph.url;
   }
 }
