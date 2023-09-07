@@ -32,16 +32,11 @@ export class PipelineStack extends cdk.Stack {
 
     const wave = pipeline.addWave("Subgraphs");
 
-    for (const subgraphName of [
-      "products",
-      //"reviews", "users"
-    ]) {
+    for (const subgraphName of ["products", "reviews", "users"]) {
       const subgraph = new SubgraphStage(this, subgraphName + "-Subgraph", {
         subgraphName,
-      })
-      const stage = wave.addStage(
-        subgraph
-      );
+      });
+      const stage = wave.addStage(subgraph);
       const subgraphDir = `subgraphs/${subgraphName}`;
 
       if (props.runChecks) {
@@ -51,7 +46,7 @@ export class PipelineStack extends cdk.Stack {
               "curl -sSL https://rover.apollo.dev/nix/latest | sh",
             ],
             commands: [
-             `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
+              `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
             ],
             env: {
               APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
@@ -61,7 +56,7 @@ export class PipelineStack extends cdk.Stack {
       }
 
       stage.addPost(
-        new pipelines.ShellStep("Publish-" + subgraphName, {
+        new pipelines.CodeBuildStep("Publish-" + subgraphName, {
           installCommands: [
             "curl -sSL https://rover.apollo.dev/nix/latest | sh",
           ],
@@ -75,7 +70,7 @@ export class PipelineStack extends cdk.Stack {
             APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
           },
         })
-      )
+      );
     }
   }
 }
