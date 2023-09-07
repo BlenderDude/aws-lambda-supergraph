@@ -7,11 +7,17 @@ type SubgraphStageProps = cdk.StageProps & {
 }
 
 export class SubgraphStage extends cdk.Stage {
+  url: cdk.CfnOutput;
+
   constructor(scope: Construct, id: string, props: SubgraphStageProps) {
     super(scope, id, props);
 
-    new LambdaSubgraph(this, props.subgraphName + "-Subgraph", {
+    const subgraph = new LambdaSubgraph(this, props.subgraphName + "-Subgraph", {
       subgraphName: props.subgraphName,
     })
+
+    this.url = new cdk.CfnOutput(this, "SubgraphUrl", {
+      value: subgraph.url,
+    });
   }
 }
