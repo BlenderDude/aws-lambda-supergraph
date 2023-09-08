@@ -5,6 +5,7 @@ import { SubgraphStage } from "./stages/subgraph-stage";
 
 interface PipelineStackProps extends cdk.StackProps {
   runChecks: boolean;
+  graphId: string;
 }
 
 export class PipelineStack extends cdk.Stack {
@@ -28,49 +29,90 @@ export class PipelineStack extends cdk.Stack {
       publishAssetsInParallel: false,
     });
 
-    const graphRef = "cloud-test@main";
 
-    const wave = pipeline.addWave("Subgraphs");
+    const devWave = pipeline.addWave("Subgraphs-Dev");
 
-    for (const subgraphName of ["products", "reviews", "users"]) {
+    const subgraphs = ["products", "reviews", "users"];
+
+    for (const subgraphName of subgraphs) {
+      const graphRef = `${props.graphId}@dev`;
       const subgraph = new SubgraphStage(this, subgraphName + "-Subgraph", {
         subgraphName,
       });
-      const stage = wave.addStage(subgraph);
+      const stage = devWave.addStage(subgraph);
       const subgraphDir = `subgraphs/${subgraphName}`;
 
       if (props.runChecks) {
         stage.addPre(
-          new pipelines.ShellStep("Check-" + subgraphName, {
-            installCommands: [
-              "curl -sSL https://rover.apollo.dev/nix/latest | sh",
-            ],
-            commands: [
-              `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName}`,
-            ],
-            env: {
-              APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
-            },
-          })
+          this.createCheckStep(
+            graphRef,
+            subgraphName,
+            `${subgraphDir}/schema.graphql`
+          )
         );
       }
 
       stage.addPost(
-        new pipelines.CodeBuildStep("Publish-" + subgraphName, {
-          installCommands: [
-            "curl -sSL https://rover.apollo.dev/nix/latest | sh",
-          ],
-          commands: [
-            `/root/.rover/bin/rover subgraph publish ${graphRef} --schema ${subgraphDir}/schema.graphql --name ${subgraphName} --routing-url $ROUTING_URL`,
-          ],
-          envFromCfnOutputs: {
-            ROUTING_URL: subgraph.url,
-          },
-          env: {
-            APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
-          },
-        })
+        this.createPublishStep(
+          graphRef,
+          subgraphName,
+          `${subgraphDir}/schema.graphql`,
+          subgraph.url
+        )
       );
     }
+
+    pipeline.addWave("Prod-Approval", {
+      pre: [
+        new pipelines.ManualApprovalStep("Approve-Prod", {})
+      ]
+    })
+
+    pipeline.addWave("Subgraphs-Prod");
+
+    for (const subgraphName of subgraphs) {
+      const graphRef = `${props.graphId}@main`;
+      const subgraph = new SubgraphStage(this, subgraphName + "-SubgraphProd", {
+        subgraphName,
+      });
+      const stage = pipeline.addStage(subgraph);
+      const subgraphDir = `subgraphs/${subgraphName}`;
+
+      stage.addPost(
+        this.createPublishStep(
+          graphRef,
+          subgraphName,
+          `${subgraphDir}/schema.graphql`,
+          subgraph.url
+        )
+      );
+    }
+  }
+
+  private createCheckStep(graphRef: string, subgraphName: string, schemaFile: string) {
+    return new pipelines.CodeBuildStep("Check-" + subgraphName, {
+      installCommands: ["curl -sSL https://rover.apollo.dev/nix/latest | sh"],
+      commands: [
+        `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${schemaFile} --name ${subgraphName}`,
+      ],
+      env: {
+        APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
+      },
+    });
+  }
+
+  private createPublishStep(graphRef: string, subgraphName: string, schemaFile: string, routingUrl: cdk.CfnOutput) {
+    return new pipelines.CodeBuildStep("Publish-" + subgraphName, {
+      installCommands: ["curl -sSL https://rover.apollo.dev/nix/latest | sh"],
+      commands: [
+        `/root/.rover/bin/rover subgraph publish ${graphRef} --schema ${schemaFile} --name ${subgraphName} --routing-url $ROUTING_URL`,
+      ],
+      env: {
+        APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
+      },
+      envFromCfnOutputs: {
+        ROUTING_URL: routingUrl,
+      }
+    });
   }
 }
