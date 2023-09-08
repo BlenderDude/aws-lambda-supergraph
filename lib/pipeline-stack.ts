@@ -1,16 +1,23 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as pipelines from "aws-cdk-lib/pipelines";
+import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import { SubgraphStage } from "./stages/subgraph-stage";
+import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 
 interface PipelineStackProps extends cdk.StackProps {
   runChecks: boolean;
   graphId: string;
+  graphOSApiKey: ISecret;
 }
 
 export class PipelineStack extends cdk.Stack {
+  private graphOSApiKey: ISecret;
+
   constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
+
+    this.graphOSApiKey = props.graphOSApiKey;
 
     const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
       selfMutation: true,
@@ -95,9 +102,14 @@ export class PipelineStack extends cdk.Stack {
       commands: [
         `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${schemaFile} --name ${subgraphName}`,
       ],
-      env: {
-        APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
-      },
+      buildEnvironment: {
+        environmentVariables: {
+          APOLLO_KEY: {
+            value: this.graphOSApiKey.secretArn,
+            type: codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
+          }
+        }
+      }
     });
   }
 
@@ -107,11 +119,16 @@ export class PipelineStack extends cdk.Stack {
       commands: [
         `/root/.rover/bin/rover subgraph publish ${graphRef} --schema ${schemaFile} --name ${subgraphName} --routing-url $ROUTING_URL`,
       ],
-      env: {
-        APOLLO_KEY: "user:gh.BlenderDude:sX6sWH7Be7CHCPm9TVj4cw",
-      },
       envFromCfnOutputs: {
         ROUTING_URL: routingUrl,
+      },
+      buildEnvironment: {
+        environmentVariables: {
+          APOLLO_KEY: {
+            value: this.graphOSApiKey.secretArn,
+            type: codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
+          }
+        }
       }
     });
   }
