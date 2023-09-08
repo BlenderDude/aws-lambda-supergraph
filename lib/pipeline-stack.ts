@@ -3,12 +3,11 @@ import { Construct } from "constructs";
 import * as pipelines from "aws-cdk-lib/pipelines";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import { SubgraphStage } from "./stages/subgraph-stage";
-import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
+import { ISecret, Secret } from "aws-cdk-lib/aws-secretsmanager";
 
 interface PipelineStackProps extends cdk.StackProps {
   runChecks: boolean;
   graphId: string;
-  graphOSApiKey: ISecret;
 }
 
 export class PipelineStack extends cdk.Stack {
@@ -17,7 +16,7 @@ export class PipelineStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
 
-    this.graphOSApiKey = props.graphOSApiKey;
+    this.graphOSApiKey = Secret.fromSecretNameV2(this, 'GraphOSApiKey', 'graphos-api-key');
 
     const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
       selfMutation: true,
