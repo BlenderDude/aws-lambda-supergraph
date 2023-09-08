@@ -74,14 +74,14 @@ export class PipelineStack extends cdk.Stack {
       ]
     })
 
-    pipeline.addWave("Subgraphs-Prod");
+    const prodWave = pipeline.addWave("Subgraphs-Prod");
 
     for (const subgraphName of subgraphs) {
       const graphRef = `${props.graphId}@main`;
       const subgraph = new SubgraphStage(this, subgraphName + "-SubgraphProd", {
         subgraphName,
       });
-      const stage = pipeline.addStage(subgraph);
+      const stage = prodWave.addStage(subgraph);
       const subgraphDir = `subgraphs/${subgraphName}`;
 
       stage.addPost(
