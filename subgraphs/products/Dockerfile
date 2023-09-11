@@ -3,6 +3,8 @@ FROM public.ecr.aws/lambda/nodejs:18 as builder
 COPY . /app
 WORKDIR /app
 RUN npm install
+COPY schema.graphql ./
+RUN npm run gql
 RUN npm run build
 
 FROM public.ecr.aws/lambda/nodejs:18

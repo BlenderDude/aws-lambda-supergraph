@@ -4,6 +4,7 @@ import * as pipelines from "aws-cdk-lib/pipelines";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import { SubgraphStage } from "./stages/subgraph-stage";
 import { ISecret, Secret } from "aws-cdk-lib/aws-secretsmanager";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 interface PipelineStackProps extends cdk.StackProps {
   runChecks: boolean;
@@ -17,6 +18,8 @@ export class PipelineStack extends cdk.Stack {
     super(scope, id, props);
 
     this.graphOSApiKey = Secret.fromSecretNameV2(this, 'GraphOSApiKey', 'graphos-api-key');
+
+    const devTable = this.createEntityTable("dev");
 
     const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
       selfMutation: true,
@@ -44,6 +47,7 @@ export class PipelineStack extends cdk.Stack {
       const graphRef = `${props.graphId}@dev`;
       const subgraph = new SubgraphStage(this, subgraphName + "-Subgraph", {
         subgraphName,
+        table: devTable,
       });
       const stage = devWave.addStage(subgraph);
       const subgraphDir = `subgraphs/${subgraphName}`;
@@ -76,10 +80,13 @@ export class PipelineStack extends cdk.Stack {
 
     const prodWave = pipeline.addWave("Subgraphs-Prod");
 
+    const prodTable = this.createEntityTable("prod");
+
     for (const subgraphName of subgraphs) {
       const graphRef = `${props.graphId}@main`;
       const subgraph = new SubgraphStage(this, subgraphName + "-SubgraphProd", {
         subgraphName,
+        table: prodTable,
       });
       const stage = prodWave.addStage(subgraph);
       const subgraphDir = `subgraphs/${subgraphName}`;
@@ -130,5 +137,19 @@ export class PipelineStack extends cdk.Stack {
         }
       }
     });
+  }
+
+  private createEntityTable(prefix: string) {
+    return new dynamodb.Table(this, prefix + "-Table", {
+      partitionKey: {
+        name: "pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    })
   }
 }

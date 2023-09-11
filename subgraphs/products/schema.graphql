@@ -1,12 +1,27 @@
 type Product @key(fields: "id") {
   id: ID!
   name: String!
-  price: Int
+  price: Int!
 }
 
 type Query {
   products: [Product!]!
   product(id: ID!): Product
+}
+
+input ProductInput {
+  name: String!
+  price: Int!
+}
+
+type ProductMutation {
+  update(product: ProductInput!): Product!
+  delete: Boolean!
+}
+
+type Mutation {
+  createProduct(product: ProductInput!): Product!
+  product(id: ID!): ProductMutation
 }
 
 extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable"])
