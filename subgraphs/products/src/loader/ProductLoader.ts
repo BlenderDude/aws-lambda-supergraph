@@ -1,6 +1,7 @@
 import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { TABLE_NAME } from "../ddb";
 import { ProductModel } from "../models/product";
+import crypto from "crypto";
 
 
 export class ProductLoader {
@@ -40,10 +41,11 @@ export class ProductLoader {
   }
 
   async create(productInput: Pick<ProductModel, 'name' | 'price'>) {
+    const id = crypto.randomBytes(16).toString("hex");
     const product: ProductModel = {
       pk: this.entityName,
-      sk: productInput.name,
-      id: productInput.name,
+      sk: id,
+      id,
       name: productInput.name,
       price: productInput.price,
     };
