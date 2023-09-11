@@ -12,7 +12,7 @@ const subgraphs = ["products", "reviews", "users"];
 export class SubgraphStage extends cdk.Stage {
   urls: Record<string, cdk.CfnOutput> = {};
 
-  constructor(scope: Construct, id: string, props: cdk.StageProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StageProps) {
     super(scope, id, props);
 
     const { table } = new TableStack(this, "TableStack");
@@ -27,7 +27,8 @@ export class SubgraphStage extends cdk.Stage {
     }
   }
 
-  createCheckSteps(graphRef: string, graphOSApiKey: ISecret) {
+  createCheckSteps(graphId: string, variant: string, graphOSApiKey: ISecret) {
+    const graphRef = `${graphId}@${variant}`;
     return subgraphs.map(subgraphName => {
       const schemaFile = `subgraphs/${subgraphName}/schema.graphql`;
       return new pipelines.CodeBuildStep("Check-" + subgraphName, {
@@ -47,7 +48,8 @@ export class SubgraphStage extends cdk.Stage {
     })
   }
 
-  createPublishSteps(graphRef: string, graphOSApiKey: ISecret) {
+  createPublishSteps(graphId: string, variant: string, graphOSApiKey: ISecret) {
+    const graphRef = `${graphId}@${variant}`;
     return subgraphs.map(subgraphName => {
       const schemaFile = `subgraphs/${subgraphName}/schema.graphql`;
       const routingUrl = this.urls[subgraphName];

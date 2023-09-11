@@ -13,11 +13,13 @@ interface PipelineStackProps extends cdk.StackProps {
 
 export class PipelineStack extends cdk.Stack {
   private graphOSApiKey: ISecret;
+  private runChecks: boolean;
 
   constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
 
     this.graphOSApiKey = Secret.fromSecretNameV2(this, 'GraphOSApiKey', 'graphos-api-key');
+    this.runChecks = props.runChecks;
 
     const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
       selfMutation: true,
@@ -36,11 +38,7 @@ export class PipelineStack extends cdk.Stack {
       publishAssetsInParallel: false,
     });
 
-    const devStage = new SubgraphStage(this, "Dev", {});
-    
-    pipeline.addStage(devStage, {
-      pre: devStage.createCheckSteps(`${props.graphId}@dev`, this.graphOSApiKey),
-    });
+    this.addSubgraphStage(pipeline, props.graphId, "dev");
 
     pipeline.addWave("Prod-Approval", {
       pre: [
@@ -48,11 +46,18 @@ export class PipelineStack extends cdk.Stack {
       ]
     })
 
-    const prodStage = new SubgraphStage(this, "Prod", {});
+    this.addSubgraphStage(pipeline, props.graphId, "prod");
+  }
 
-    pipeline.addStage(prodStage, {
-      pre: prodStage.createCheckSteps(`${props.graphId}@main`, this.graphOSApiKey),
-      post: prodStage.createPublishSteps(`${props.graphId}@main`, this.graphOSApiKey),
+  private addSubgraphStage(pipeline: pipelines.CodePipeline, graphId: string, variant: string) {
+    const stage = new SubgraphStage(this, `Subgraphs-${variant}`);
+
+    const pipelineStage = pipeline.addStage(stage, {
+      post: stage.createPublishSteps(graphId, variant, this.graphOSApiKey),
     })
+
+    if(this.runChecks) {
+      pipelineStage.addPre(...stage.createCheckSteps(graphId, variant, this.graphOSApiKey))
+    }
   }
 }
