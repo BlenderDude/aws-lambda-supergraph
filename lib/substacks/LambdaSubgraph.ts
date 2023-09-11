@@ -6,7 +6,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 interface LambdaSubgraphProps extends cdk.StackProps {
   subgraphName: string;
-  table: dynamodb.Table;
+  table: dynamodb.ITable;
 }
 
 export class LambdaSubgraph extends cdk.Stack {
@@ -15,7 +15,7 @@ export class LambdaSubgraph extends cdk.Stack {
   constructor(scope: Construct, id: string, props: LambdaSubgraphProps) {
     super(scope, id, props);
 
-    const { subgraphName } = props;
+    const { subgraphName, table } = props;
 
     const fn = new lambda.Function(this, "SubgraphFunction", {
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -24,11 +24,11 @@ export class LambdaSubgraph extends cdk.Stack {
       ),
       handler: "dist/index.default",
       environment: {
-        TABLE_NAME: props.table.tableName,
+        TABLE_NAME: table.tableName,
       }
     });
 
-    props.table.grantReadWriteData(fn);
+    table.grantReadWriteData(fn);
 
     // Allow the Supergraph to access the subgraph via a function url
     // TODO SigV4 auth when implemented

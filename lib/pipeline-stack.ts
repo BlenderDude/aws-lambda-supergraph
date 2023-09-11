@@ -19,8 +19,6 @@ export class PipelineStack extends cdk.Stack {
 
     this.graphOSApiKey = Secret.fromSecretNameV2(this, 'GraphOSApiKey', 'graphos-api-key');
 
-    const devTable = this.createEntityTable("dev");
-
     const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
       selfMutation: true,
       synth: new pipelines.ShellStep("Synth", {
@@ -38,39 +36,11 @@ export class PipelineStack extends cdk.Stack {
       publishAssetsInParallel: false,
     });
 
-
-    const devWave = pipeline.addWave("Subgraphs-Dev");
-
-    const subgraphs = ["products", "reviews", "users"];
-
-    for (const subgraphName of subgraphs) {
-      const graphRef = `${props.graphId}@dev`;
-      const subgraph = new SubgraphStage(this, subgraphName + "-Subgraph", {
-        subgraphName,
-        table: devTable,
-      });
-      const stage = devWave.addStage(subgraph);
-      const subgraphDir = `subgraphs/${subgraphName}`;
-
-      if (props.runChecks) {
-        stage.addPre(
-          this.createCheckStep(
-            graphRef,
-            subgraphName,
-            `${subgraphDir}/schema.graphql`
-          )
-        );
-      }
-
-      stage.addPost(
-        this.createPublishStep(
-          graphRef,
-          subgraphName,
-          `${subgraphDir}/schema.graphql`,
-          subgraph.url
-        )
-      );
-    }
+    const devStage = new SubgraphStage(this, "Dev", {});
+    
+    pipeline.addStage(devStage, {
+      pre: devStage.createCheckSteps(`${props.graphId}@dev`, this.graphOSApiKey),
+    });
 
     pipeline.addWave("Prod-Approval", {
       pre: [
@@ -78,78 +48,11 @@ export class PipelineStack extends cdk.Stack {
       ]
     })
 
-    const prodWave = pipeline.addWave("Subgraphs-Prod");
+    const prodStage = new SubgraphStage(this, "Prod", {});
 
-    const prodTable = this.createEntityTable("prod");
-
-    for (const subgraphName of subgraphs) {
-      const graphRef = `${props.graphId}@main`;
-      const subgraph = new SubgraphStage(this, subgraphName + "-SubgraphProd", {
-        subgraphName,
-        table: prodTable,
-      });
-      const stage = prodWave.addStage(subgraph);
-      const subgraphDir = `subgraphs/${subgraphName}`;
-
-      stage.addPost(
-        this.createPublishStep(
-          graphRef,
-          subgraphName,
-          `${subgraphDir}/schema.graphql`,
-          subgraph.url
-        )
-      );
-    }
-  }
-
-  private createCheckStep(graphRef: string, subgraphName: string, schemaFile: string) {
-    return new pipelines.CodeBuildStep("Check-" + subgraphName, {
-      installCommands: ["curl -sSL https://rover.apollo.dev/nix/latest | sh"],
-      commands: [
-        `/root/.rover/bin/rover subgraph check ${graphRef} --schema ${schemaFile} --name ${subgraphName}`,
-      ],
-      buildEnvironment: {
-        environmentVariables: {
-          APOLLO_KEY: {
-            value: this.graphOSApiKey.secretArn,
-            type: codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
-          }
-        }
-      }
-    });
-  }
-
-  private createPublishStep(graphRef: string, subgraphName: string, schemaFile: string, routingUrl: cdk.CfnOutput) {
-    return new pipelines.CodeBuildStep("Publish-" + subgraphName, {
-      installCommands: ["curl -sSL https://rover.apollo.dev/nix/latest | sh"],
-      commands: [
-        `/root/.rover/bin/rover subgraph publish ${graphRef} --schema ${schemaFile} --name ${subgraphName} --routing-url $ROUTING_URL`,
-      ],
-      envFromCfnOutputs: {
-        ROUTING_URL: routingUrl,
-      },
-      buildEnvironment: {
-        environmentVariables: {
-          APOLLO_KEY: {
-            value: this.graphOSApiKey.secretArn,
-            type: codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
-          }
-        }
-      }
-    });
-  }
-
-  private createEntityTable(prefix: string) {
-    return new dynamodb.Table(this, prefix + "-Table", {
-      partitionKey: {
-        name: "pk",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "sk",
-        type: dynamodb.AttributeType.STRING,
-      },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    pipeline.addStage(prodStage, {
+      pre: prodStage.createCheckSteps(`${props.graphId}@main`, this.graphOSApiKey),
+      post: prodStage.createPublishSteps(`${props.graphId}@main`, this.graphOSApiKey),
     })
   }
 }
