@@ -13,6 +13,7 @@
   "dependencies": {
     "@apollo/server": "^4.9.0",
     "@apollo/subgraph": "^2.5.1",
+    "@app/shared": "file:../../shared/app-shared-1.0.0.tgz",
     "@as-integrations/aws-lambda": "^3.0.0",
     "@aws-sdk/client-dynamodb": "^3.409.0",
     "@aws-sdk/lib-dynamodb": "^3.409.0",
@@ -21,9 +22,9 @@
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.0",
-    "@types/node": "^20.4.5",
-    "typescript": "^5.2.2",
     "@graphql-codegen/typescript": "4.0.1",
-    "@graphql-codegen/typescript-resolvers": "4.0.1"
+    "@graphql-codegen/typescript-resolvers": "4.0.1",
+    "@types/node": "^20.4.5",
+    "typescript": "^5.2.2"
   }
 }

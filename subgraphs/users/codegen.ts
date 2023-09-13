@@ -10,8 +10,8 @@ const config: CodegenConfig = {
       config: {
         federation: true,
         mappers: {
-          Product: "../repositories/Product.repository#ProductModel",
-          ProductMutation: "../repositories/Product.repository#ProductModel",
+          User: "../repositories/User.repository#UserModel",
+          UserMutation: "../repositories/User.repository#UserModel",
         },
         contextType: "../context#ResolverContext",
       }

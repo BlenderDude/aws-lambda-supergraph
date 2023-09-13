@@ -1,11 +1,12 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { LambdaSubgraph } from "../substacks/LambdaSubgraph";
+import { LambdaSubgraph } from "../substacks/lambda-subgraph-stack";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as pipelines from "aws-cdk-lib/pipelines";
 import * as codebuild from "aws-cdk-lib/aws-codebuild";
-import { TableStack } from "../substacks/TableStack";
+import { TableStack } from "../substacks/table-stack";
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
+import { AuthenticationStack } from "../substacks/authentication-stack";
 
 const subgraphs = ["products", "reviews", "users"];
 
@@ -16,11 +17,16 @@ export class SubgraphStage extends cdk.Stage {
     super(scope, id, props);
 
     const { table } = new TableStack(this, "TableStack");
+    const { authFunction } = new AuthenticationStack(
+      this,
+      "AuthenticationStack"
+    );
 
     for (const subgraphName of subgraphs) {
       const subgraph = new LambdaSubgraph(this, subgraphName + "-Subgraph", {
         subgraphName,
         table,
+        authFunction,
       });
 
       this.urls[subgraphName] = subgraph.url;
@@ -29,7 +35,7 @@ export class SubgraphStage extends cdk.Stage {
 
   createCheckSteps(graphId: string, variant: string, graphOSApiKey: ISecret) {
     const graphRef = `${graphId}@${variant}`;
-    return subgraphs.map(subgraphName => {
+    return subgraphs.map((subgraphName) => {
       const schemaFile = `subgraphs/${subgraphName}/schema.graphql`;
       return new pipelines.CodeBuildStep("Check-" + subgraphName, {
         installCommands: ["curl -sSL https://rover.apollo.dev/nix/latest | sh"],
@@ -41,16 +47,16 @@ export class SubgraphStage extends cdk.Stage {
             APOLLO_KEY: {
               value: graphOSApiKey.secretArn,
               type: codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
-            }
-          }
-        }
+            },
+          },
+        },
       });
-    })
+    });
   }
 
   createPublishSteps(graphId: string, variant: string, graphOSApiKey: ISecret) {
     const graphRef = `${graphId}@${variant}`;
-    return subgraphs.map(subgraphName => {
+    return subgraphs.map((subgraphName) => {
       const schemaFile = `subgraphs/${subgraphName}/schema.graphql`;
       const routingUrl = this.urls[subgraphName];
       return new pipelines.CodeBuildStep("Publish-" + subgraphName, {
@@ -66,10 +72,10 @@ export class SubgraphStage extends cdk.Stage {
             APOLLO_KEY: {
               value: graphOSApiKey.secretArn,
               type: codebuild.BuildEnvironmentVariableType.SECRETS_MANAGER,
-            }
-          }
-        }
+            },
+          },
+        },
       });
-    })
+    });
   }
 }

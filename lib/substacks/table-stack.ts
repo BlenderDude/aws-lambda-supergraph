@@ -9,17 +9,31 @@ export class TableStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    this.table = new dynamodb.Table(this, "Table", {
+    const table = new dynamodb.Table(this, "Table", {
       partitionKey: {
         name: "pk",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
         name: "sk",
-        type: dynamodb.AttributeType.STRING,
+        type: dynamodb.AttributeType.NUMBER,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+
+    table.addGlobalSecondaryIndex({
+      indexName: "GSI1",
+      partitionKey: {
+        name: "gsi1pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "gsi1sk",
+        type: dynamodb.AttributeType.NUMBER,
+      },
     })
+
+    this.table = table;
   }
 
 }

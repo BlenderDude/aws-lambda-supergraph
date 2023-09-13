@@ -2,6 +2,11 @@ type Product @key(fields: "id") {
   id: ID!
   name: String!
   price: Int!
+  createdBy: User!
+}
+
+type User @key(fields: "id") {
+  id: ID!
 }
 
 type Query {
@@ -14,7 +19,8 @@ input ProductInput {
   price: Int!
 }
 
-type ProductMutation {
+type ProductMutation @key(fields: "id") {
+  id: ID!
   update(product: ProductInput!): Product!
   delete: Boolean!
 }

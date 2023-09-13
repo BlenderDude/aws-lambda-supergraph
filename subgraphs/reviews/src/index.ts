@@ -1,56 +1,80 @@
 import { ApolloServer } from "@apollo/server";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import {
-  startServerAndCreateLambdaHandler,
   handlers,
+  startServerAndCreateLambdaHandler,
 } from "@as-integrations/aws-lambda";
-import { parse } from "graphql";
 import * as fs from "fs";
+import { parse } from "graphql";
 import * as path from "path";
-
-const reviews = [{
-  id: "1",
-  productId: "1",
-  rating: 5,
-  body: "This is a great product!",
-  userId: "1",
-}, {
-  id: "2",
-  productId: "1",
-  rating: 1,
-  body: "This is a terrible product!",
-  userId: "2",
-}, {
-  id: "3",
-  productId: "2",
-  rating: 3,
-  body: "This is an okay product!",
-  userId: "3",
-}]
+import { Resolvers } from "./generated/graphql";
+import { ResolverContext } from "./context";
+import { ddbClient } from "./ddb";
+import { ReviewRepository } from "./repositories/Review.repository";
+import { SessionManager } from "@app/shared";
+import { env } from "./env";
 
 // A map of functions which return data for the schema.
-const resolvers = {
+const resolvers: Resolvers = {
   Product: {
-    reviews: (product: {id: string}) => reviews.filter(({ productId }) => productId === product.id),
+    reviews: async (product, _, ctx) => {
+      return await ctx.repositories.review.loadAll(product.id);
+    },
   },
   Review: {
-    __resolveReference: (review: {id: string}) => reviews.find(({ id }) => id === review.id),
-    user: (review: {userId: string}) => ({ __typename: "User", id: review.userId }),
-    product: (review: {productId: string}) => ({ __typename: "Product", id: review.productId }),
+    id: (review) => review.pk + ":" + review.sk.toString(16),
+    body: (review) => review.body,
+    product: (review) => {
+      return { __typename: "Product", id: review.productId } as any;
+    },
+    rating: (review) => review.rating,
+    user: (review) => {
+      return { __typename: "User", id: review.userId };
+    },
   },
+  ProductMutation: {
+    addReview: async ({id}, args, ctx) => {
+      if(!ctx.session?.userId) {
+        throw new Error("You must be logged in to add a review");
+      }
+      const review = await ctx.repositories.review.createReview({
+        body: args.review.body,
+        productId: id,
+        rating: args.review.rating,
+        userId: ctx.session.userId,
+      });
+      return review;
+    },
+  }
 };
 
 // Set up Apollo Server
-const server = new ApolloServer({
+const server = new ApolloServer<ResolverContext>({
   schema: buildSubgraphSchema({
     typeDefs: parse(
       fs.readFileSync(path.join(__dirname, "..", "schema.graphql"), "utf8")
     ),
-    resolvers,
+    resolvers: resolvers as any,
   }),
 });
 
 export default startServerAndCreateLambdaHandler(
   server,
-  handlers.createAPIGatewayProxyEventV2RequestHandler()
+  handlers.createAPIGatewayProxyEventV2RequestHandler(),
+  {
+    context: async ({ event }): Promise<ResolverContext> => {
+      const sessionManager = new SessionManager(
+        env.AUTHENTICATION_FUNCTION_NAME
+      );
+      const session = await sessionManager.loadSessionFromHeaders(
+        event.headers
+      );
+      return {
+        repositories: {
+          review: new ReviewRepository(ddbClient),
+        },
+        session,
+      };
+    },
+  }
 );

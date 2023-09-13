@@ -1,12 +1,12 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
-import * as path from "path";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 interface LambdaSubgraphProps extends cdk.StackProps {
   subgraphName: string;
   table: dynamodb.ITable;
+  authFunction: lambda.IFunction;
 }
 
 export class LambdaSubgraph extends cdk.Stack {
@@ -15,20 +15,28 @@ export class LambdaSubgraph extends cdk.Stack {
   constructor(scope: Construct, id: string, props: LambdaSubgraphProps) {
     super(scope, id, props);
 
-    const { subgraphName, table } = props;
+    const { subgraphName, table, authFunction } = props;
 
     const fn = new lambda.Function(this, "SubgraphFunction", {
       runtime: lambda.Runtime.NODEJS_18_X,
       code: lambda.Code.fromDockerBuild(
-        path.join(process.cwd(), "subgraphs", subgraphName)
+        process.cwd(),
+        {
+          file: "Dockerfile.subgraph",
+          buildArgs: {
+            SUBGRAPH_NAME: subgraphName,
+          }
+        }
       ),
       handler: "dist/index.default",
       environment: {
-        TABLE_NAME: table.tableName,
+        DDB_TABLE_NAME: table.tableName,
+        AUTHENTICATION_FUNCTION_NAME: props.authFunction.functionName,
       }
     });
 
     table.grantReadWriteData(fn);
+    authFunction.grantInvoke(fn);
 
     // Allow the Supergraph to access the subgraph via a function url
     // TODO SigV4 auth when implemented

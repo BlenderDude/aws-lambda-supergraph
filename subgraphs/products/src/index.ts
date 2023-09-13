@@ -7,58 +7,90 @@ import {
 import * as fs from "fs";
 import { parse } from "graphql";
 import * as path from "path";
-import { ddbClient } from "./ddb";
 import { Resolvers } from "./generated/graphql";
-import { ProductLoader } from "./loader/ProductLoader";
+import { ProductRepository } from "./repositories/Product.repository";
+import { ResolverContext } from "./context";
+import { ddbClient } from "./ddb";
+import { SessionManager } from "@app/shared";
+import { env } from "./env";
 
 // A map of functions which return data for the schema.
 const resolvers: Resolvers = {
   Query: {
-    products: async () => {
-      const loader = new ProductLoader(ddbClient);
-      return await loader.loadAll();
+    products: async (_, __, ctx) => {
+      return await ctx.repositories.product.loadAllProducts();
     },
-    product: async (_, { id }) => {
-      const loader = new ProductLoader(ddbClient);
-      return await loader.load(id);
+    product: async (_, { id }, ctx) => {
+      return await ctx.repositories.product.loadProduct(id);
     },
   },
   Mutation: {
-    createProduct: async (_, { product }) => {
-      const loader = new ProductLoader(ddbClient);
-      return await loader.create(product);
+    createProduct: async (_, { product }, ctx) => {
+      if (ctx.session === null) {
+        throw new Error("Unauthorized");
+      }
+      return await ctx.repositories.product.createProduct({
+        ...product,
+        createdByUserId: ctx.session.userId,
+      });
     },
-    product: async (_, { id }) => {
-      const loader = new ProductLoader(ddbClient);
-      return await loader.load(id);
-    }
+    product: async (_, { id }, ctx) => {
+      return await ctx.repositories.product.loadProduct(id);
+    },
   },
   ProductMutation: {
-    update: async (product, args) => {
-      const loader = new ProductLoader(ddbClient);
+    __resolveReference: async (product, ctx) => {
+      // Entry point reference type is improper in codegen when using custom mapper types
+      // So, here we are casting to unknown and then to the proper type
+      // See https://github.com/dotansimha/graphql-code-generator/issues/3207
+      const reference = product as unknown as { id: string };
+      return await ctx.repositories.product.loadProduct(reference.id);
+    },
+    id: (product) => product.sk.toString(16),
+    update: async (product, args, ctx) => {
+      if (
+        ctx.session === null ||
+        product.createdByUserId !== ctx.session.userId
+      ) {
+        throw new Error("Unauthorized");
+      }
       product.price = args.product.price;
       product.name = args.product.name;
-      return await loader.save(product);
+      return await ctx.repositories.product.save(product);
     },
-    delete: async (product) => {
-      const loader = new ProductLoader(ddbClient);
-      await loader.delete(product);
+    delete: async (product, args, ctx) => {
+      if (
+        ctx.session === null ||
+        product.createdByUserId !== ctx.session.userId
+      ) {
+        throw new Error("Unauthorized");
+      }
+      await ctx.repositories.product.delete(product.pk, product.sk);
       return true;
     },
   },
   Product: {
-    __resolveReference: async (product: { id: string }) => {
-      const loader = new ProductLoader(ddbClient);
-      return await loader.load(product.id);
+    __resolveReference: async (product, ctx) => {
+      // Entry point reference type is improper in codegen when using custom mapper types
+      // So, here we are casting to unknown and then to the proper type
+      // See https://github.com/dotansimha/graphql-code-generator/issues/3207
+      const reference = product as unknown as { id: string };
+      return await ctx.repositories.product.loadProduct(reference.id);
     },
-    id: (product) => product.id,
+    id: (product) => product.sk.toString(16),
     name: (product) => product.name,
     price: (product) => product.price,
+    createdBy: (product) => {
+      return {
+        __typename: "User",
+        id: product.createdByUserId,
+      };
+    }
   },
 };
 
 // Set up Apollo Server
-const server = new ApolloServer({
+const server = new ApolloServer<ResolverContext>({
   schema: buildSubgraphSchema({
     typeDefs: parse(
       fs.readFileSync(path.join(__dirname, "..", "schema.graphql"), "utf8")
@@ -69,5 +101,21 @@ const server = new ApolloServer({
 
 export default startServerAndCreateLambdaHandler(
   server,
-  handlers.createAPIGatewayProxyEventV2RequestHandler()
+  handlers.createAPIGatewayProxyEventV2RequestHandler(),
+  {
+    context: async ({ event }): Promise<ResolverContext> => {
+      const sessionManager = new SessionManager(
+        env.AUTHENTICATION_FUNCTION_NAME
+      );
+      const session = await sessionManager.loadSessionFromHeaders(
+        event.headers
+      );
+      return {
+        repositories: {
+          product: new ProductRepository(ddbClient),
+        },
+        session,
+      };
+    },
+  }
 );

@@ -15,4 +15,14 @@ type Product @key(fields: "id") {
   reviews: [Review!]!
 }
 
+input ReviewInput {
+  body: String!
+  rating: Int!
+}
+
+type ProductMutation @key(fields: "id") {
+  id: ID!
+  addReview(review: ReviewInput!): Review!
+}
+
 extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable"])
