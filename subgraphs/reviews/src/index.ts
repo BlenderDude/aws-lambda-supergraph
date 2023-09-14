@@ -22,7 +22,7 @@ const resolvers: Resolvers = {
     },
   },
   Review: {
-    id: (review) => review.pk + ":" + review.sk.toString(16),
+    id: (review, _, ctx) => review.pk + ":" + ctx.repositories.review.convertSkToId(review.sk),
     body: (review) => review.body,
     product: (review) => {
       return { __typename: "Product", id: review.productId } as any;

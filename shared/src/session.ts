@@ -84,7 +84,8 @@ export class SessionManager {
     }
     try {
       return await this.verifySession(token);
-    } catch {
+    } catch(e) {
+      console.log(`Failed to verify session: ${e}`);
       return null;
     }
   }

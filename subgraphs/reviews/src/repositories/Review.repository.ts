@@ -4,7 +4,7 @@ import { env } from "../env";
 
 export type ReviewModel = {
   pk: string;
-  sk: BigInt;
+  sk: bigint;
   body: string;
   rating: number;
   productId: string;

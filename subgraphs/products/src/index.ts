@@ -46,7 +46,7 @@ const resolvers: Resolvers = {
       const reference = product as unknown as { id: string };
       return await ctx.repositories.product.loadProduct(reference.id);
     },
-    id: (product) => product.sk.toString(16),
+    id: (product, _, ctx) => ctx.repositories.product.convertSkToId(product.sk),
     update: async (product, args, ctx) => {
       if (
         ctx.session === null ||
@@ -77,7 +77,7 @@ const resolvers: Resolvers = {
       const reference = product as unknown as { id: string };
       return await ctx.repositories.product.loadProduct(reference.id);
     },
-    id: (product) => product.sk.toString(16),
+    id: (product, _, ctx) => ctx.repositories.product.convertSkToId(product.sk),
     name: (product) => product.name,
     price: (product) => product.price,
     createdBy: (product) => {

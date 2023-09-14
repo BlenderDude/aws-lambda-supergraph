@@ -5,7 +5,7 @@ import { env } from "../env";
 
 export type UserModel = {
   pk: string;
-  sk: BigInt;
+  sk: bigint;
   name: string;
 }
 
@@ -17,9 +17,9 @@ export class UserRepository extends Repository<UserModel> {
   }
 
   loadUser(id: string) {
-    const idBuff = Buffer.alloc(16);
-    idBuff.write(id);
-    const sk = idBuff.readBigInt64LE();
+    const idBuff = Buffer.alloc(8);
+    idBuff.write(id, 'hex');
+    const sk = idBuff.readBigUInt64LE();
     return this.load(this.entityPk, sk);
   }
 

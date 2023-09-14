@@ -30,21 +30,25 @@ const resolvers: Resolvers = {
         name,
       });
       const token = await ctx.services.session.createSession(
-        user.sk.toString(16),
+        ctx.repositories.user.convertSkToId(user.sk),
         user.name
       );
       return token;
     },
   },
   User: {
-    __resolveReference: async (product, ctx) => {
+    __resolveReference: async (user, ctx) => {
       // Entry point reference type is improper in codegen when using custom mapper types
       // So, here we are casting to unknown and then to the proper type
       // See https://github.com/dotansimha/graphql-code-generator/issues/3207
-      const reference = product as unknown as { id: string };
+      const reference = user as unknown as { id: string };
       return await ctx.repositories.user.loadUser(reference.id);
     },
-    id: (user) => user.sk.toString(16),
+    id: (user) => {
+      const buff = Buffer.alloc(8);
+      buff.writeBigUInt64LE(user.sk);
+      return buff.toString('hex');
+    },
     name: (user) => user.name,
   },
 };

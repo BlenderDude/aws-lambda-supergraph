@@ -85,4 +85,10 @@ export abstract class Repository<M extends BaseModel> {
       })
     );
   }
+
+  convertSkToId(sk: bigint) {
+    const buff = Buffer.alloc(8);
+    buff.writeBigUInt64LE(sk);
+    return buff.toString('hex');
+  }
 }

@@ -5,7 +5,7 @@ import { env } from "../env";
 
 export type ProductModel = {
   pk: string;
-  sk: BigInt;
+  sk: bigint;
   name: string;
   price: number;
   createdByUserId: string;
