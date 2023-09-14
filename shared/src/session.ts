@@ -26,6 +26,10 @@ type Result =
   | {
       type: "create";
       token: string;
+    }
+  | {
+      type: "error";
+      message: string;
     };
 
 export type Session = {
@@ -47,6 +51,10 @@ export class SessionManager {
       },
     });
 
+    if (result.type === "error") {
+      throw new Error(result.message);
+    }
+
     return result.token;
   }
 
@@ -55,6 +63,10 @@ export class SessionManager {
       action: "verify",
       token,
     });
+
+    if (result.type === "error") {
+      throw new Error(result.message);
+    }
 
     if (!result.success) {
       throw new Error("Invalid session");
@@ -79,7 +91,7 @@ export class SessionManager {
 
   private async invokeAuthenticator<P extends Payload>(
     payload: P
-  ): Promise<Extract<Result, { type: P["action"] }>> {
+  ): Promise<Extract<Result, { type: P["action"] } | { type: "error" }>> {
     const invokeResult = await this.client.send(
       new InvokeCommand({
         FunctionName: this.authenticationFunctionName,

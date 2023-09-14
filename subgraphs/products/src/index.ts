@@ -11,7 +11,7 @@ import { Resolvers } from "./generated/graphql";
 import { ProductRepository } from "./repositories/Product.repository";
 import { ResolverContext } from "./context";
 import { ddbClient } from "./ddb";
-import { SessionManager } from "@app/shared";
+import { SessionManager, loggingPlugin } from "@app/shared";
 import { env } from "./env";
 
 // A map of functions which return data for the schema.
@@ -97,6 +97,7 @@ const server = new ApolloServer<ResolverContext>({
     ),
     resolvers: resolvers as any,
   }),
+  plugins: [loggingPlugin],
 });
 
 export default startServerAndCreateLambdaHandler(

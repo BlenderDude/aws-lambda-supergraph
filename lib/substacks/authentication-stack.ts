@@ -4,7 +4,7 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
 
-export class AuthenticationStack extends cdk.Stack {
+export class AuthenticationStack extends cdk.NestedStack {
   public authFunction: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {

@@ -11,7 +11,7 @@ import { Resolvers } from "./generated/graphql";
 import { ResolverContext } from "./context";
 import { ddbClient } from "./ddb";
 import { ReviewRepository } from "./repositories/Review.repository";
-import { SessionManager } from "@app/shared";
+import { SessionManager, loggingPlugin } from "@app/shared";
 import { env } from "./env";
 
 // A map of functions which return data for the schema.
@@ -33,8 +33,8 @@ const resolvers: Resolvers = {
     },
   },
   ProductMutation: {
-    addReview: async ({id}, args, ctx) => {
-      if(!ctx.session?.userId) {
+    addReview: async ({ id }, args, ctx) => {
+      if (!ctx.session?.userId) {
         throw new Error("You must be logged in to add a review");
       }
       const review = await ctx.repositories.review.createReview({
@@ -45,7 +45,7 @@ const resolvers: Resolvers = {
       });
       return review;
     },
-  }
+  },
 };
 
 // Set up Apollo Server
@@ -56,6 +56,7 @@ const server = new ApolloServer<ResolverContext>({
     ),
     resolvers: resolvers as any,
   }),
+  plugins: [loggingPlugin],
 });
 
 export default startServerAndCreateLambdaHandler(

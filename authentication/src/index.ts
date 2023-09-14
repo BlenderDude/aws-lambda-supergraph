@@ -41,31 +41,45 @@ async function getSecret() {
 }
 
 export const handler: Handler<unknown> = async (e) => {
-  const secret = await getSecret();
-  const event = eventSchema.parse(e);
-  switch (event.action) {
-    case "verify": {
-      try {
-        const payload = verifyToken(event.token, secret);
+  try {
+    const secret = await getSecret();
+    const event = eventSchema.parse(e);
+    switch (event.action) {
+      case "verify": {
+        try {
+          const payload = verifyToken(event.token, secret);
+          return {
+            type: "verify",
+            success: true,
+            payload,
+          };
+        } catch {
+          return {
+            type: "verify",
+            success: false,
+          };
+        }
+      }
+      case "create": {
+        const payload = payloadSchema.parse(event.payload);
+        const token = signToken(payload, secret);
         return {
-          type: "verify",
-          success: true,
-          payload,
-        };
-      } catch {
-        return {
-          type: "verify",
-          success: false,
+          type: "create",
+          token,
         };
       }
     }
-    case "create": {
-      const payload = payloadSchema.parse(event.payload);
-      const token = signToken(payload, secret);
+  } catch (e) {
+    console.error(e);
+    if(e instanceof Error) {
       return {
-        type: "create",
-        token,
-      };
+        type: "error",
+        error: e.message,
+      }
+    }
+    return {
+      type: "error",
+      error: "Unknown error",
     }
   }
 };
