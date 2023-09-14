@@ -3,13 +3,13 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
-interface LambdaSubgraphProps extends cdk.StackProps {
+interface LambdaSubgraphProps extends cdk.NestedStackProps {
   subgraphName: string;
   table: dynamodb.ITable;
   authFunction: lambda.IFunction;
 }
 
-export class LambdaSubgraph extends cdk.Stack {
+export class LambdaSubgraph extends cdk.NestedStack {
   public url: cdk.CfnOutput;
 
   constructor(scope: Construct, id: string, props: LambdaSubgraphProps) {

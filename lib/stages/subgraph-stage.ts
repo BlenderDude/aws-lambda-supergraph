@@ -7,35 +7,31 @@ import * as codebuild from "aws-cdk-lib/aws-codebuild";
 import { TableStack } from "../substacks/table-stack";
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { AuthenticationStack } from "../substacks/authentication-stack";
+import { AppStack } from "../app-stack";
 
-const subgraphs = ["products", "reviews", "users"];
+interface SubgraphStageProps extends cdk.StageProps {
+  subgraphs: string[];
+}
 
 export class SubgraphStage extends cdk.Stage {
   urls: Record<string, cdk.CfnOutput> = {};
+  private subgraphs: string[];
 
-  constructor(scope: Construct, id: string, props?: cdk.StageProps) {
+  constructor(scope: Construct, id: string, props: SubgraphStageProps) {
     super(scope, id, props);
 
-    const { table } = new TableStack(this, "TableStack");
-    const { authFunction } = new AuthenticationStack(
-      this,
-      "AuthenticationStack"
-    );
+    this.subgraphs = props.subgraphs;
 
-    for (const subgraphName of subgraphs) {
-      const subgraph = new LambdaSubgraph(this, subgraphName + "-Subgraph", {
-        subgraphName,
-        table,
-        authFunction,
-      });
+    const {urls} = new AppStack(this, "AppStack", {
+      subgraphs: props.subgraphs,
+    })
 
-      this.urls[subgraphName] = subgraph.url;
-    }
+    this.urls = urls;
   }
 
   createCheckSteps(graphId: string, variant: string, graphOSApiKey: ISecret) {
     const graphRef = `${graphId}@${variant}`;
-    return subgraphs.map((subgraphName) => {
+    return this.subgraphs.map((subgraphName) => {
       const schemaFile = `subgraphs/${subgraphName}/schema.graphql`;
       return new pipelines.CodeBuildStep("Check-" + subgraphName, {
         installCommands: ["curl -sSL https://rover.apollo.dev/nix/latest | sh"],
@@ -56,7 +52,7 @@ export class SubgraphStage extends cdk.Stage {
 
   createPublishSteps(graphId: string, variant: string, graphOSApiKey: ISecret) {
     const graphRef = `${graphId}@${variant}`;
-    return subgraphs.map((subgraphName) => {
+    return this.subgraphs.map((subgraphName) => {
       const schemaFile = `subgraphs/${subgraphName}/schema.graphql`;
       const routingUrl = this.urls[subgraphName];
       return new pipelines.CodeBuildStep("Publish-" + subgraphName, {

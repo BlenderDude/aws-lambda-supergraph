@@ -50,7 +50,13 @@ export class PipelineStack extends cdk.Stack {
   }
 
   private addSubgraphStage(pipeline: pipelines.CodePipeline, graphId: string, variant: string) {
-    const stage = new SubgraphStage(this, `Subgraphs-${variant}`);
+    const stage = new SubgraphStage(this, `Subgraphs-${variant}`, {
+      subgraphs: [
+        "products",
+        "reviews",
+        "users",
+      ]
+    });
 
     const pipelineStage = pipeline.addStage(stage, {
       post: stage.createPublishSteps(graphId, variant, this.graphOSApiKey),

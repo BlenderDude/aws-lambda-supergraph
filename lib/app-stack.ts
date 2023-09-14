@@ -61,3 +61,41 @@
 //     });
 //   }
 // }
+
+import * as cdk from "aws-cdk-lib";
+import { Construct } from "constructs";
+import { AuthenticationStack } from "./substacks/authentication-stack";
+import { LambdaSubgraph } from "./substacks/lambda-subgraph-stack";
+import { TableStack } from "./substacks/table-stack";
+
+interface AppStackProps extends cdk.StackProps {
+  subgraphs: string[];
+}
+
+export class AppStack extends cdk.Stack {
+
+  urls: Record<string, cdk.CfnOutput> = {};
+
+  constructor(scope: Construct, id: string, props: AppStackProps) {
+    super(scope, id, props);
+
+    const { table } = new TableStack(this, "TableStack");
+    const { authFunction } = new AuthenticationStack(
+      this,
+      "AuthenticationStack"
+    );
+
+    for (const subgraphName of props.subgraphs) {
+      const subgraph = new LambdaSubgraph(this, subgraphName + "-Subgraph", {
+        subgraphName,
+        table,
+        authFunction,
+      });
+
+      this.urls[subgraphName] = new cdk.CfnOutput(this, `SubgraphUrl-${subgraphName}`, {
+        value: subgraph.url.value,
+      });
+    }
+
+  }
+}
