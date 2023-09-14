@@ -21,18 +21,6 @@ export class TableStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
 
-    table.addGlobalSecondaryIndex({
-      indexName: "GSI1",
-      partitionKey: {
-        name: "gsi1pk",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "gsi1sk",
-        type: dynamodb.AttributeType.NUMBER,
-      },
-    })
-
     this.table = table;
   }
 
