@@ -21,7 +21,7 @@ export class ProductRepository extends Repository<ProductModel> {
   loadProduct(id: string) {
     const idBuff = Buffer.alloc(16);
     idBuff.write(id);
-    const sk = idBuff.readBigInt64LE();
+    const sk = idBuff.readBigUInt64LE();
     return this.load(this.entityPk, sk);
   }
 
