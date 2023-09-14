@@ -17,7 +17,7 @@ export class AuthenticationStack extends cdk.NestedStack {
       code: lambda.Code.fromDockerBuild(
         path.join(process.cwd(), "authentication")
       ),
-      handler: "dist/index.default",
+      handler: "dist/index.handler",
       environment: {
         JWT_SECRET_ARN: jwtSecret.secretArn,
       },
