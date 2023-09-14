@@ -32,7 +32,8 @@ export class LambdaSubgraph extends cdk.NestedStack {
       environment: {
         DDB_TABLE_NAME: table.tableName,
         AUTHENTICATION_FUNCTION_NAME: props.authFunction.functionName,
-      }
+      },
+      timeout: cdk.Duration.seconds(10),
     });
 
     table.grantReadWriteData(fn);

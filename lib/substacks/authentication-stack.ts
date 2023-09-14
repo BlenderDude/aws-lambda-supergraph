@@ -21,6 +21,7 @@ export class AuthenticationStack extends cdk.NestedStack {
       environment: {
         JWT_SECRET_ARN: jwtSecret.secretArn,
       },
+      timeout: cdk.Duration.seconds(10),
     });
 
     jwtSecret.grantRead(fn);
