@@ -16,19 +16,23 @@ export class ReviewRepository extends Repository<ReviewModel> {
     super(ddb, env.DDB_TABLE_NAME);
   }
 
+  private buildReviewPk(productId: string) {
+    return `ProductReview-${productId}`;
+  }
+
   createReview(modelInput: Omit<ReviewModel, "pk" | "sk">) {
-    const pk = `ProductReview-${modelInput.productId}`;
+    const pk = this.buildReviewPk(modelInput.productId);
     const sk = process.hrtime.bigint();
     return super.create(pk, sk, modelInput);
   }
 
   loadAllReviews(productId: string): Promise<ReviewModel[]> {
-    const pk = `ProductReview-${productId}`;
+    const pk = this.buildReviewPk(productId);
     return this.loadAll(pk);
   }
 
   loadReview(productId: string, reviewId: string): Promise<ReviewModel | null> {
-    const pk = `ProductReview-${productId}`;
+    const pk = this.buildReviewPk(productId);
     const idBuff = Buffer.alloc(8);
     idBuff.write(reviewId, 'hex');
     const sk = idBuff.readBigUInt64LE();

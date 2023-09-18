@@ -18,6 +18,7 @@ import { env } from "./env";
 const resolvers: Resolvers = {
   Product: {
     reviews: async (product, _, ctx) => {
+      console.log(product);
       return await ctx.repositories.review.loadAll(product.id);
     },
   },
