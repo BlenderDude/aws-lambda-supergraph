@@ -46,7 +46,7 @@ const resolvers: Resolvers = {
     },
     id: (user) => {
       const buff = Buffer.alloc(8);
-      buff.writeBigUInt64LE(user.sk);
+      buff.writeBigUInt64LE(BigInt(user.sk));
       return buff.toString('hex');
     },
     name: (user) => user.name,

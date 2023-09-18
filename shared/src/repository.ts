@@ -10,7 +10,7 @@ Buffer.alloc(8).readBigUint64LE(0);
 
 export type BaseModel = {
   pk: string;
-  sk: BigInt;
+  sk: bigint | number;
 };
 
 export abstract class Repository<M extends BaseModel> {
@@ -86,9 +86,9 @@ export abstract class Repository<M extends BaseModel> {
     );
   }
 
-  convertSkToId(sk: bigint) {
+  convertSkToId(sk: bigint | number) {
     const buff = Buffer.alloc(8);
-    buff.writeBigUInt64LE(sk);
+    buff.writeBigUInt64LE(BigInt(sk));
     return buff.toString('hex');
   }
 }
