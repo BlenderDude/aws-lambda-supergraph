@@ -59,14 +59,15 @@ const server = new ApolloServer<ResolverContext>({
   plugins: [loggingPlugin],
 });
 
+const sessionManager = new SessionManager(
+  env.AUTHENTICATION_FUNCTION_NAME
+);
+
 export default startServerAndCreateLambdaHandler(
   server,
   handlers.createAPIGatewayProxyEventV2RequestHandler(),
   {
     context: async ({ event }): Promise<ResolverContext> => {
-      const sessionManager = new SessionManager(
-        env.AUTHENTICATION_FUNCTION_NAME
-      );
       const session = await sessionManager.loadSessionFromHeaders(
         event.headers
       );

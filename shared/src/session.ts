@@ -40,6 +40,8 @@ export type Session = {
 export class SessionManager {
   private client = new LambdaClient({});
 
+  private cache = new Map<string, Session>();
+
   constructor(private authenticationFunctionName: string) {}
 
   async createSession(userId: string, name: string) {
@@ -59,6 +61,11 @@ export class SessionManager {
   }
 
   async verifySession(token: string): Promise<Session> {
+
+    if(this.cache.has(token)) {
+      return this.cache.get(token)!;
+    }
+
     const result = await this.invokeAuthenticator({
       action: "verify",
       token,
@@ -71,6 +78,8 @@ export class SessionManager {
     if (!result.success) {
       throw new Error("Invalid session");
     }
+
+    this.cache.set(token, result.payload);
 
     return result.payload;
   }
