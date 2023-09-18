@@ -34,10 +34,7 @@ export class LambdaSubgraph extends cdk.NestedStack {
         AUTHENTICATION_FUNCTION_NAME: authFunction.functionName,
       },
       timeout: cdk.Duration.seconds(10),
-      currentVersionOptions: {
-        provisionedConcurrentExecutions: 1,
-      },
-      memorySize: 128,
+      memorySize: 512,
     });
 
     table.grantReadWriteData(fn);

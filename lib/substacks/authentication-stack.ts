@@ -22,10 +22,7 @@ export class AuthenticationStack extends cdk.NestedStack {
         JWT_SECRET_ARN: jwtSecret.secretArn,
       },
       timeout: cdk.Duration.seconds(10),
-      memorySize: 128,
-      currentVersionOptions: {
-        provisionedConcurrentExecutions: 1,
-      },
+      memorySize: 512,
     });
 
     jwtSecret.grantRead(fn);
