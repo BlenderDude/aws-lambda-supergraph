@@ -31,7 +31,7 @@ export class LambdaSubgraph extends cdk.NestedStack {
       handler: "dist/index.default",
       environment: {
         DDB_TABLE_NAME: table.tableName,
-        AUTHENTICATION_FUNCTION_NAME: props.authFunction.functionName,
+        AUTHENTICATION_FUNCTION_NAME: authFunction.functionName,
       },
       timeout: cdk.Duration.seconds(10),
     });

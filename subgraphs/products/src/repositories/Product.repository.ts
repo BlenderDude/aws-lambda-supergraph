@@ -20,7 +20,7 @@ export class ProductRepository extends Repository<ProductModel> {
 
   loadProduct(id: string) {
     const idBuff = Buffer.alloc(8);
-    idBuff.write(id);
+    idBuff.write(id, 'hex');
     const sk = idBuff.readBigUInt64LE();
     return this.load(this.entityPk, sk);
   }

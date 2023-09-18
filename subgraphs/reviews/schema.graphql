@@ -6,7 +6,7 @@ type Review {
   user: User!
 }
 
-type User @key(fields: "id", resolvable: false) {
+type User @key(fields: "id") {
   id: ID!
 }
 

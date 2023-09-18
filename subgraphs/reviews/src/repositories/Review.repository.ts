@@ -29,7 +29,9 @@ export class ReviewRepository extends Repository<ReviewModel> {
 
   loadReview(productId: string, reviewId: string): Promise<ReviewModel | null> {
     const pk = `ProductReview-${productId}`;
-    const sk = BigInt(reviewId);
+    const idBuff = Buffer.alloc(8);
+    idBuff.write(reviewId, 'hex');
+    const sk = idBuff.readBigUInt64LE();
     return this.load(pk, sk);
   }
 }
