@@ -22,7 +22,10 @@ const resolvers: Resolvers = {
     },
   },
   Review: {
-    id: (review, _, ctx) => review.pk + ":" + ctx.repositories.review.convertSkToId(review.sk),
+    id: (review, _, ctx) => {
+      const id = review.pk + ":" + ctx.repositories.review.convertSkToId(review.sk)
+      return Buffer.from(id).toString('base64url');
+    },
     body: (review) => review.body,
     product: (review) => {
       return { __typename: "Product", id: review.productId } as any;
