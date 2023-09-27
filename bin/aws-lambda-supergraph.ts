@@ -7,6 +7,6 @@ import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 const app = new cdk.App();
 
 new PipelineStack(app, 'Pipeline', {
-  runChecks: false,
+  runChecks: true,
   graphId: "cloud-test",
 });

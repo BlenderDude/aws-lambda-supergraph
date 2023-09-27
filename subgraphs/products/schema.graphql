@@ -5,7 +5,7 @@ type Product @key(fields: "id") {
   createdBy: User!
 }
 
-type User @key(fields: "id") {
+type User @key(fields: "id" resolvable: false) {
   id: ID!
 }
 
