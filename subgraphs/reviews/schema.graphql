@@ -10,7 +10,7 @@ type User @key(fields: "id" resolvable: false) {
   id: ID!
 }
 
-type Product @key(fields: "id" resolvable: false) {
+type Product @key(fields: "id") {
   id: ID!
   reviews: [Review!]!
 }
@@ -20,7 +20,7 @@ input ReviewInput {
   rating: Int!
 }
 
-type ProductMutation @key(fields: "id" resolvable: false) {
+type ProductMutation @key(fields: "id") {
   id: ID!
   addReview(review: ReviewInput!): Review!
 }
