@@ -33,12 +33,16 @@ export class PipelineStack extends cdk.Stack {
             authentication: cdk.SecretValue.secretsManager("github-token"),
           }
         ),
-        commands: ["npm ci", "npm run build", "npx cdk synth"],
+        commands: [
+          "npm ci",
+          "npm run build",
+          "npx cdk@latest version",
+          "npx cdk@latest synth",
+        ],
       }),
       dockerEnabledForSynth: true,
       dockerEnabledForSelfMutation: true,
-      publishAssetsInParallel: false,
-      cliVersion: "2.99.1",
+      publishAssetsInParallel: true,
     });
 
     this.addSubgraphsStage(pipeline, props.graphId, "dev");
