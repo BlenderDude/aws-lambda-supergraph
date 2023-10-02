@@ -1,30 +1,59 @@
-import { Repository, BaseModel } from "@app/shared";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
 import { env } from "../env";
 
 export type UserModel = {
   pk: string;
-  sk: bigint;
+  sk: string;
   name: string;
-}
+};
 
-export class UserRepository extends Repository<UserModel> {
-  private entityPk = "User-Entity";
-
-  constructor(ddb: DynamoDBDocumentClient){
-    super(ddb, env.DDB_TABLE_NAME);
+export class UserRepository {
+  private buildUserPk(id: string) {
+    return `User#${id}`;
   }
 
-  loadUser(id: string) {
-    const idBuff = Buffer.alloc(8);
-    idBuff.write(id, 'hex');
-    const sk = idBuff.readBigUInt64LE();
-    return this.load(this.entityPk, sk);
+  constructor(private ddb: DynamoDBDocumentClient) {}
+
+  async loadUser(id: string): Promise<UserModel | null> {
+    const pk = this.buildUserPk(id);
+    const result = await this.ddb.send(
+      new GetCommand({
+        Key: {
+          pk,
+          sk: "metadata",
+        },
+        TableName: env.DDB_TABLE_NAME,
+      })
+    );
+    return result.Item as UserModel | null;
   }
 
-  createUser(modelInput: Omit<UserModel, "pk" | "sk">) {
-    const sk = crypto.randomBytes(8).readBigUInt64LE();
-    return super.create(this.entityPk, sk, modelInput);
+  async createUser(
+    modelInput: Omit<UserModel, "pk" | "sk">
+  ): Promise<UserModel> {
+    const id = crypto.randomBytes(8).toString("hex");
+    const pk = this.buildUserPk(id);
+    const sk = "metadata";
+    const model: UserModel = {
+      ...modelInput,
+      pk,
+      sk,
+    };
+    await this.ddb.send(
+      new PutCommand({
+        TableName: env.DDB_TABLE_NAME,
+        Item: model,
+      })
+    );
+    return model;
+  }
+
+  getUserId(user: UserModel) {
+    return user.pk.replace("User#", "");
   }
 }

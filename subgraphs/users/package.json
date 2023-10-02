@@ -13,17 +13,19 @@
   "dependencies": {
     "@apollo/server": "^4.9.0",
     "@apollo/subgraph": "^2.5.1",
-    "@app/shared": "file:../../shared/app-shared-1.0.0.tgz",
     "@as-integrations/aws-lambda": "^3.0.0",
     "@aws-sdk/client-dynamodb": "^3.409.0",
+    "@aws-sdk/client-secrets-manager": "^3.423.0",
     "@aws-sdk/lib-dynamodb": "^3.409.0",
     "graphql": "^16.7.1",
+    "jsonwebtoken": "^9.0.2",
     "zod": "^3.22.2"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/typescript": "4.0.1",
     "@graphql-codegen/typescript-resolvers": "4.0.1",
+    "@types/jsonwebtoken": "^9.0.3",
     "@types/node": "^20.4.5",
     "typescript": "^5.2.2"
   }

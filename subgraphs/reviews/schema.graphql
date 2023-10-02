@@ -6,13 +6,23 @@ type Review @key(fields: "id") {
   user: User!
 }
 
-type User @key(fields: "id" resolvable: false) {
+type User @key(fields: "id", resolvable: false) {
   id: ID!
+}
+
+type ReviewEdge {
+  node: Review!
+  cursor: String!
+}
+
+type ReviewConnection {
+  pageInfo: PageInfo!
+  edges: [ReviewEdge!]!
 }
 
 type Product @key(fields: "id") {
   id: ID!
-  reviews: [Review!]!
+  reviews(first: Int, after: String): ReviewConnection!
 }
 
 input ReviewInput {
@@ -25,4 +35,13 @@ type ProductMutation @key(fields: "id") {
   addReview(review: ReviewInput!): Review!
 }
 
-extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable"])
+type PageInfo @shareable {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3"
+    import: ["@key", "@shareable"]
+  )

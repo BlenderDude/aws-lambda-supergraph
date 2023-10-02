@@ -1,20 +1,9 @@
-FROM public.ecr.aws/lambda/nodejs:18 as shared
-
-COPY shared /shared
-WORKDIR /shared
-
-RUN npm install
-RUN npm run build
-RUN npm pack
-
 FROM public.ecr.aws/lambda/nodejs:18 as builder
 
 ARG SUBGRAPH_NAME
 
-COPY --from=shared /shared/app-shared-1.0.0.tgz /shared/app-shared-1.0.0.tgz
 COPY subgraphs/${SUBGRAPH_NAME} /app
 WORKDIR /app
-RUN npm install /shared/app-shared-1.0.0.tgz
 COPY subgraphs/${SUBGRAPH_NAME}/schema.graphql ./
 RUN npm run gql
 RUN npm run build
@@ -22,8 +11,6 @@ RUN npm run build
 FROM public.ecr.aws/lambda/nodejs:18
 
 ARG SUBGRAPH_NAME
-
-COPY --from=shared /shared/app-shared-1.0.0.tgz /shared/app-shared-1.0.0.tgz
 
 WORKDIR /asset
 COPY --from=builder /app/package.json /app/package-lock.json ./

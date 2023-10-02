@@ -1,10 +1,8 @@
 import * as cdk from "aws-cdk-lib";
-import { Construct } from "constructs";
-import * as pipelines from "aws-cdk-lib/pipelines";
-import * as codebuild from "aws-cdk-lib/aws-codebuild";
-import { SubgraphStage } from "./stages/subgraph-stage";
 import { ISecret, Secret } from "aws-cdk-lib/aws-secretsmanager";
-import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as pipelines from "aws-cdk-lib/pipelines";
+import { Construct } from "constructs";
+import { AppStage } from "./stages/app-stage";
 
 interface PipelineStackProps extends cdk.StackProps {
   runChecks: boolean;
@@ -18,7 +16,11 @@ export class PipelineStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
 
-    this.graphOSApiKey = Secret.fromSecretNameV2(this, 'GraphOSApiKey', 'graphos-api-key');
+    this.graphOSApiKey = Secret.fromSecretNameV2(
+      this,
+      "GraphOSApiKey",
+      "graphos-api-key"
+    );
     this.runChecks = props.runChecks;
 
     const pipeline = new pipelines.CodePipeline(this, "Pipeline", {
@@ -38,32 +40,32 @@ export class PipelineStack extends cdk.Stack {
       publishAssetsInParallel: false,
     });
 
-    this.addSubgraphStage(pipeline, props.graphId, "dev");
+    this.addSubgraphsStage(pipeline, props.graphId, "dev");
 
     pipeline.addWave("Prod-Approval", {
-      pre: [
-        new pipelines.ManualApprovalStep("Approve-Prod", {})
-      ]
-    })
+      pre: [new pipelines.ManualApprovalStep("Approve-Prod", {})],
+    });
 
-    this.addSubgraphStage(pipeline, props.graphId, "prod");
+    this.addSubgraphsStage(pipeline, props.graphId, "prod");
   }
 
-  private addSubgraphStage(pipeline: pipelines.CodePipeline, graphId: string, variant: string) {
-    const stage = new SubgraphStage(this, `Subgraphs-${variant}`, {
-      subgraphs: [
-        "products",
-        "reviews",
-        "users",
-      ]
+  private addSubgraphsStage(
+    pipeline: pipelines.CodePipeline,
+    graphId: string,
+    variant: string
+  ) {
+    const stage = new AppStage(this, `Subgraphs-${variant}`, {
+      graphId,
+      variant,
+      graphOSApiKey: this.graphOSApiKey,
     });
 
     const pipelineStage = pipeline.addStage(stage, {
-      post: stage.createPublishSteps(graphId, variant, this.graphOSApiKey),
-    })
+      post: stage.createPublishSteps(),
+    });
 
-    if(this.runChecks) {
-      pipelineStage.addPre(...stage.createCheckSteps(graphId, variant, this.graphOSApiKey))
+    if (this.runChecks) {
+      pipelineStage.addPre(...stage.createCheckSteps());
     }
   }
 }

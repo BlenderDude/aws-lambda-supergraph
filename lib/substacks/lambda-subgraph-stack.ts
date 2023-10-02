@@ -5,55 +5,46 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 interface LambdaSubgraphProps extends cdk.NestedStackProps {
   subgraphName: string;
-  table: dynamodb.ITable;
-  authFunction: lambda.IFunction;
+  extraEnv?: Record<string, string>;
 }
 
 export class LambdaSubgraph extends cdk.NestedStack {
-  public url: cdk.CfnOutput;
+  public fn: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props: LambdaSubgraphProps) {
     super(scope, id, props);
 
-    const { subgraphName, table, authFunction } = props;
+    const { subgraphName } = props;
 
-    const fn = new lambda.Function(this, "SubgraphFunction", {
+    const table = new dynamodb.Table(this, "Table", {
+      partitionKey: {
+        name: "pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+
+    this.fn = new lambda.Function(this, "SubgraphFunction", {
       runtime: lambda.Runtime.NODEJS_18_X,
-      code: lambda.Code.fromDockerBuild(
-        process.cwd(),
-        {
-          file: "Dockerfile.subgraph",
-          buildArgs: {
-            SUBGRAPH_NAME: subgraphName,
-          }
-        }
-      ),
+      code: lambda.Code.fromDockerBuild(process.cwd(), {
+        file: "Dockerfile.subgraph",
+        buildArgs: {
+          SUBGRAPH_NAME: subgraphName,
+        },
+      }),
       handler: "dist/index.default",
       environment: {
         DDB_TABLE_NAME: table.tableName,
-        AUTHENTICATION_FUNCTION_NAME: authFunction.functionName,
+        ...props.extraEnv,
       },
       timeout: cdk.Duration.seconds(10),
       memorySize: 512,
     });
 
-    table.grantReadWriteData(fn);
-    authFunction.grantInvoke(fn);
-
-    // Allow the Supergraph to access the subgraph via a function url
-    // TODO SigV4 auth when implemented
-    const { url } = fn.addFunctionUrl({
-      authType: lambda.FunctionUrlAuthType.NONE,
-      cors: {
-        allowCredentials: true,
-        allowedHeaders: ["*"],
-        allowedOrigins: ["*"],
-      },
-      invokeMode: lambda.InvokeMode.BUFFERED,
-    });
-
-    this.url = new cdk.CfnOutput(this, "SubgraphUrl", {
-      value: url,
-    });
+    table.grantReadWriteData(this.fn);
   }
 }

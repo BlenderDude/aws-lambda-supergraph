@@ -1,36 +1,109 @@
-import { Repository, BaseModel } from "@app/shared";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  ScanCommand,
+  PutCommand,
+  DeleteCommand,
+  ScanCommandOutput,
+} from "@aws-sdk/lib-dynamodb";
 import crypto from "crypto";
 import { env } from "../env";
 
 export type ProductModel = {
   pk: string;
-  sk: bigint;
+  sk: string;
   name: string;
   price: number;
   createdByUserId: string;
-}
+};
 
-export class ProductRepository extends Repository<ProductModel> {
+export class ProductRepository {
   private entityPk = "Product-Entity";
 
-  constructor(ddb: DynamoDBDocumentClient){
-    super(ddb, env.DDB_TABLE_NAME);
+  private generatePk(id: string) {
+    return `${this.entityPk}#${id}`;
   }
 
-  loadProduct(id: string) {
-    const idBuff = Buffer.alloc(8);
-    idBuff.write(id, 'hex');
-    const sk = idBuff.readBigUInt64LE();
-    return this.load(this.entityPk, sk);
+  constructor(private ddb: DynamoDBDocumentClient) {}
+
+  async load(id: string): Promise<ProductModel | null> {
+    const result = await this.ddb.send(
+      new GetCommand({
+        Key: {
+          pk: this.generatePk(id),
+          sk: "metadata",
+        },
+        TableName: env.DDB_TABLE_NAME,
+      })
+    );
+
+    return (result.Item as ProductModel) ?? null;
   }
 
-  loadAllProducts(): Promise<ProductModel[]> {
-    return this.loadAll(this.entityPk);    
+  async *loadAll(): AsyncIterableIterator<ProductModel> {
+    let lastEvaluatedKey: Record<string, string> | undefined = undefined;
+
+    do {
+      const result: ScanCommandOutput = await this.ddb.send(
+        new ScanCommand({
+          TableName: env.DDB_TABLE_NAME,
+          FilterExpression: "begins_with(#pk, :pk)",
+          ExpressionAttributeNames: {
+            "#pk": "pk",
+          },
+          ExpressionAttributeValues: {
+            ":pk": this.entityPk,
+          },
+          ExclusiveStartKey: lastEvaluatedKey,
+        })
+      );
+      lastEvaluatedKey = result.LastEvaluatedKey;
+      for (const item of result.Items ?? []) {
+        yield item as ProductModel;
+      }
+    } while (lastEvaluatedKey !== undefined);
   }
 
-  createProduct(modelInput: Omit<ProductModel, "pk" | "sk">) {
-    const sk = crypto.randomBytes(8).readBigUInt64LE();
-    return super.create(this.entityPk, sk, modelInput);
+  async create(modelInput: Omit<ProductModel, "pk" | "sk">) {
+    const id = crypto.randomBytes(8).readBigUInt64LE();
+    const pk = this.generatePk(id.toString());
+    const sk = "metadata";
+    const product: ProductModel = {
+      pk,
+      sk,
+      ...modelInput,
+    };
+    await this.ddb.send(
+      new PutCommand({
+        TableName: env.DDB_TABLE_NAME,
+        Item: product,
+      })
+    );
+    return product;
+  }
+
+  async delete(model: ProductModel) {
+    await this.ddb.send(
+      new DeleteCommand({
+        TableName: env.DDB_TABLE_NAME,
+        Key: {
+          pk: model.pk,
+          sk: "metadata",
+        },
+      })
+    );
+  }
+
+  async update(input: ProductModel) {
+    await this.ddb.send(
+      new PutCommand({
+        TableName: env.DDB_TABLE_NAME,
+        Item: input,
+      })
+    );
+  }
+
+  getId(model: ProductModel) {
+    return model.sk.split("#")[1];
   }
 }

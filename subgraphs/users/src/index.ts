@@ -7,18 +7,19 @@ import {
 import * as fs from "fs";
 import { parse } from "graphql";
 import * as path from "path";
-import { Resolvers } from "./generated/graphql";
 import { ResolverContext } from "./context";
 import { ddbClient } from "./ddb";
 import { UserRepository } from "./repositories/User.repository";
-import { SessionManager, loggingPlugin } from "@app/shared";
-import { env } from "./env";
+import { env, getSecret } from "./env";
+import { Resolvers } from "./generated/graphql";
+import jwt from "jsonwebtoken";
+import { APIGatewayProxyEventV2WithLambdaAuthorizer } from "aws-lambda";
 
 // A map of functions which return data for the schema.
 const resolvers: Resolvers = {
   Query: {
     viewer: async (_, __, ctx) => {
-      if (ctx.session === null) {
+      if (ctx.session.userId === null) {
         return null;
       }
       return await ctx.repositories.user.loadUser(ctx.session.userId);
@@ -29,10 +30,8 @@ const resolvers: Resolvers = {
       const user = await ctx.repositories.user.createUser({
         name,
       });
-      const token = await ctx.services.session.createSession(
-        ctx.repositories.user.convertSkToId(user.sk),
-        user.name
-      );
+      const id = ctx.repositories.user.getUserId(user);
+      const token = jwt.sign({ userId: id }, await getSecret());
       return token;
     },
   },
@@ -44,10 +43,8 @@ const resolvers: Resolvers = {
       const reference = user as unknown as { id: string };
       return await ctx.repositories.user.loadUser(reference.id);
     },
-    id: (user) => {
-      const buff = Buffer.alloc(8);
-      buff.writeBigUInt64LE(BigInt(user.sk));
-      return buff.toString('hex');
+    id: (user, __, ctx) => {
+      return ctx.repositories.user.getUserId(user);
     },
     name: (user) => user.name,
   },
@@ -61,31 +58,24 @@ const server = new ApolloServer<ResolverContext>({
     ),
     resolvers: resolvers as any,
   }),
-  plugins: [
-    loggingPlugin,
-  ]
 });
-
-const sessionManager = new SessionManager(
-  env.AUTHENTICATION_FUNCTION_NAME
-);
 
 export default startServerAndCreateLambdaHandler(
   server,
-  handlers.createAPIGatewayProxyEventV2RequestHandler(),
+  handlers.createAPIGatewayProxyEventV2RequestHandler<
+    APIGatewayProxyEventV2WithLambdaAuthorizer<{
+      userId: string | null;
+    }>
+  >(),
   {
     context: async ({ event }): Promise<ResolverContext> => {
-      const session = await sessionManager.loadSessionFromHeaders(
-        event.headers
-      );
       return {
         repositories: {
           user: new UserRepository(ddbClient),
         },
-        services: {
-          session: sessionManager,
+        session: {
+          userId: event.requestContext.authorizer.lambda.userId,
         },
-        session,
       };
     },
   }

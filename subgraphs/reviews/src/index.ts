@@ -10,21 +10,47 @@ import * as path from "path";
 import { Resolvers } from "./generated/graphql";
 import { ResolverContext } from "./context";
 import { ddbClient } from "./ddb";
-import { ReviewRepository } from "./repositories/Review.repository";
-import { SessionManager, loggingPlugin } from "@app/shared";
-import { env } from "./env";
+import {
+  ReviewModel,
+  ReviewRepository,
+} from "./repositories/Review.repository";
+import type { APIGatewayProxyEventV2WithLambdaAuthorizer } from "aws-lambda";
 
 // A map of functions which return data for the schema.
 const resolvers: Resolvers = {
   Product: {
-    reviews: async (product, _, ctx) => {
-      return await ctx.repositories.review.loadAllReviews(product.id);
+    reviews: async (product, { first, after }, ctx) => {
+      const reviews: ReviewModel[] = [];
+      const iterator = ctx.repositories.review.loadAll(
+        product.id,
+        after ?? undefined
+      );
+
+      for await (const review of iterator) {
+        reviews.push(review);
+        if (first && reviews.length >= first) {
+          break;
+        }
+      }
+
+      const { done } = await iterator.next();
+
+      return {
+        edges: reviews.map((review) => ({
+          cursor: review.sk,
+          node: review,
+        })),
+        pageInfo: {
+          endCursor: reviews.at(-1)?.sk ?? null,
+          hasNextPage: !done,
+        },
+      };
     },
   },
   Review: {
     id: (review, _, ctx) => {
-      const id = review.pk + ":" + ctx.repositories.review.convertSkToId(review.sk)
-      return Buffer.from(id).toString('base64url');
+      const id = review.pk + ":" + review.sk;
+      return Buffer.from(id).toString("base64url");
     },
     body: (review) => review.body,
     product: (review) => {
@@ -40,7 +66,7 @@ const resolvers: Resolvers = {
       if (!ctx.session?.userId) {
         throw new Error("You must be logged in to add a review");
       }
-      const review = await ctx.repositories.review.createReview({
+      const review = await ctx.repositories.review.create({
         body: args.review.body,
         productId: id,
         rating: args.review.rating,
@@ -59,26 +85,24 @@ const server = new ApolloServer<ResolverContext>({
     ),
     resolvers: resolvers as any,
   }),
-  plugins: [loggingPlugin],
 });
-
-const sessionManager = new SessionManager(
-  env.AUTHENTICATION_FUNCTION_NAME
-);
 
 export default startServerAndCreateLambdaHandler(
   server,
-  handlers.createAPIGatewayProxyEventV2RequestHandler(),
+  handlers.createAPIGatewayProxyEventV2RequestHandler<
+    APIGatewayProxyEventV2WithLambdaAuthorizer<{
+      userId: string | null;
+    }>
+  >(),
   {
     context: async ({ event }): Promise<ResolverContext> => {
-      const session = await sessionManager.loadSessionFromHeaders(
-        event.headers
-      );
       return {
         repositories: {
           review: new ReviewRepository(ddbClient),
         },
-        session,
+        session: {
+          userId: event.requestContext.authorizer.lambda.userId,
+        },
       };
     },
   }

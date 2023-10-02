@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.410.0",
-    "jsonwebtoken": "^9.0.2",
-    "zod": "^3.22.2"
+    "jsonwebtoken": "^9.0.2"
   }
 }

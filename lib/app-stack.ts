@@ -1,101 +1,91 @@
-// import * as cdk from "aws-cdk-lib";
-// import { Construct } from "constructs";
-// import * as fs from "fs";
-// import * as path from "path";
-// import * as lambda from "aws-cdk-lib/aws-lambda";
-
-// export class AWSLambdaSupergraphStack extends cdk.Stack {
-//   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-//     super(scope, id, props);
-
-//     // Create a subgraph for each application in the `subgraphs` directory
-//     for (const subgraphName of ["products", "reviews", "users"]) {
-//       // Create subgraph function from Dockerfile in each subgraph
-//       const fn = new lambda.Function(this, subgraphName + "-SubgraphFunction", {
-//         runtime: lambda.Runtime.NODEJS_18_X,
-//         code: lambda.Code.fromDockerBuild(
-//           path.join(process.cwd(), "subgraphs", subgraphName)
-//         ),
-//         handler: "dist/index.default",
-//       });
-
-//       // Allow the Supergraph to access the subgraph via a function url
-//       // TODO SigV4 auth when implemented
-//       const { url } = fn.addFunctionUrl({
-//         authType: lambda.FunctionUrlAuthType.NONE,
-//         cors: {
-//           allowCredentials: true,
-//           allowedHeaders: ["*"],
-//           allowedOrigins: ["*"],
-//         },
-//         invokeMode: lambda.InvokeMode.BUFFERED,
-//       });
-
-//       // Read the SDL from the local `schema.graphql` file in each subgraph
-//       const sdl = fs.readFileSync(
-//         path.join(process.cwd(), "subgraphs", subgraphName, "schema.graphql"),
-//         "utf8"
-//       );
-
-//       variant.addSubgraph(subgraphName, {
-//         sdl,
-//         url,
-//       });
-//     }
-
-
-//     const { url } = graph.addVariant(variant);
-
-//     // Output the Supergraph URL
-//     new cdk.CfnOutput(this, "SupergraphUrl", {
-//       value: url,
-//     });
-
-//     // Sandbox URL
-//     new cdk.CfnOutput(this, "SandboxUrl", {
-//       value: `https://studio.apollographql.com/sandbox/explorer?endpoint=${url}`,
-//     });
-
-//     new cdk.CfnOutput(this, "ExplorerURL", {
-//       value: `https://studio.apollographql.com/graph/${graph.graphId}/variant/${variant.name}/explorer`,
-//     });
-//   }
-// }
-
 import * as cdk from "aws-cdk-lib";
+import * as apigwv2 from "@aws-cdk/aws-apigatewayv2-alpha";
+import * as apigwv2auth from "@aws-cdk/aws-apigatewayv2-authorizers-alpha";
+import * as apigwv2int from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
 import { Construct } from "constructs";
-import { AuthenticationStack } from "./substacks/authentication-stack";
+import { AuthorizerStack } from "./substacks/authentication-stack";
 import { LambdaSubgraph } from "./substacks/lambda-subgraph-stack";
-import { TableStack } from "./substacks/table-stack";
 
 interface AppStackProps extends cdk.StackProps {
-  subgraphs: string[];
+  variant: string;
 }
 
 export class AppStack extends cdk.Stack {
-
-  urls: Record<string, cdk.CfnOutput> = {};
+  public subgraphs = new Map<string, { url: cdk.CfnOutput }>();
+  private httpApi: apigwv2.HttpApi;
+  private defaultStage: apigwv2.HttpStage;
 
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props);
 
-    const { table } = new TableStack(this, "TableStack");
-    const { authFunction } = new AuthenticationStack(
+    const { authFunction, jwtSecret } = new AuthorizerStack(
       this,
       "AuthenticationStack"
     );
 
-    for (const subgraphName of props.subgraphs) {
-      const subgraph = new LambdaSubgraph(this, subgraphName + "-Subgraph", {
-        subgraphName,
-        table,
-        authFunction,
-      });
+    const authorizer = new apigwv2auth.HttpLambdaAuthorizer(
+      "Authorizer",
+      authFunction,
+      {
+        responseTypes: [apigwv2auth.HttpLambdaResponseType.SIMPLE],
+        identitySource: [
+          "$request.header.Authorization",
+          "$request.header.X-Router-Token",
+        ],
+        resultsCacheTtl: cdk.Duration.hours(1),
+      }
+    );
 
-      this.urls[subgraphName] = new cdk.CfnOutput(this, `SubgraphUrl-${subgraphName}`, {
-        value: subgraph.url.value,
-      });
+    this.httpApi = new apigwv2.HttpApi(this, "HttpApi", {
+      defaultAuthorizer: authorizer,
+    });
+
+    this.defaultStage = this.httpApi.addStage(props.variant, {});
+
+    // Products Subgraph
+    this.createSubgraph("products", {});
+
+    // Reviews Subgraph
+    this.createSubgraph("reviews", {});
+
+    // Users Subgraph
+    const usersSubgraph = this.createSubgraph("users", {
+      extraEnv: {
+        JWT_SECRET_ARN: jwtSecret.secretArn,
+      },
+    });
+
+    jwtSecret.grantRead(usersSubgraph.fn);
+  }
+
+  createSubgraph(
+    subgraphName: string,
+    options: {
+      extraEnv?: Record<string, string>;
     }
+  ): LambdaSubgraph {
+    const subgraph = new LambdaSubgraph(this, subgraphName + "-Subgraph", {
+      subgraphName,
+      extraEnv: options.extraEnv,
+    });
 
+    const path = "/subgraphs/" + subgraphName;
+
+    this.httpApi.addRoutes({
+      path,
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.POST],
+      integration: new apigwv2int.HttpLambdaIntegration(
+        "SubgraphIntegration-" + subgraphName,
+        subgraph.fn
+      ),
+    });
+
+    const url = new cdk.CfnOutput(this, subgraphName + "Url", {
+      value: this.defaultStage.url + path,
+    });
+
+    this.subgraphs.set(subgraphName, { url });
+
+    return subgraph;
   }
 }

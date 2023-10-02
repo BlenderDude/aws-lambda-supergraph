@@ -1,41 +1,88 @@
-import { Repository, BaseModel } from "@app/shared";
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  QueryCommandOutput,
+} from "@aws-sdk/lib-dynamodb";
 import { env } from "../env";
+import crypto from "crypto";
 
 export type ReviewModel = {
   pk: string;
-  sk: bigint;
+  sk: string;
   body: string;
   rating: number;
   productId: string;
   userId: string;
 };
 
-export class ReviewRepository extends Repository<ReviewModel> {
-  constructor(ddb: DynamoDBDocumentClient) {
-    super(ddb, env.DDB_TABLE_NAME);
-  }
+export class ReviewRepository {
+  constructor(private ddb: DynamoDBDocumentClient) {}
 
   private buildReviewPk(productId: string) {
-    return `ProductReview-${productId}`;
+    return `ProductReview#${productId}`;
   }
 
-  createReview(modelInput: Omit<ReviewModel, "pk" | "sk">) {
+  async create(modelInput: Omit<ReviewModel, "pk" | "sk">) {
     const pk = this.buildReviewPk(modelInput.productId);
-    const sk = process.hrtime.bigint();
-    return super.create(pk, sk, modelInput);
+    const sk = Buffer.alloc(8);
+    sk.writeUIntBE(Math.floor(new Date().getTime() / 1000), 0, 6);
+    sk.write(crypto.randomBytes(2).toString("hex"), 6, "hex");
+    const model = {
+      ...modelInput,
+      pk,
+      sk: sk.toString("hex"),
+    };
+    await this.ddb.send(
+      new PutCommand({
+        TableName: env.DDB_TABLE_NAME,
+        Item: model,
+      })
+    );
+    return model;
   }
 
-  loadAllReviews(productId: string): Promise<ReviewModel[]> {
+  async *loadAll(
+    productId: string,
+    startFrom?: string
+  ): AsyncIterableIterator<ReviewModel> {
     const pk = this.buildReviewPk(productId);
-    return this.loadAll(pk);
+    let lastEvaluatedKey: Record<string, string> | undefined = undefined;
+    do {
+      const result: QueryCommandOutput = await this.ddb.send(
+        new QueryCommand({
+          TableName: env.DDB_TABLE_NAME,
+          FilterExpression: "#pk = :pk AND #sk > :sk",
+          ExpressionAttributeNames: {
+            "#pk": "pk",
+            "#sk": "sk",
+          },
+          ExpressionAttributeValues: {
+            ":pk": pk,
+            ":sk": startFrom ?? "",
+          },
+          ExclusiveStartKey: lastEvaluatedKey,
+        })
+      );
+      lastEvaluatedKey = result.LastEvaluatedKey ?? undefined;
+      for (const item of result.Items ?? []) {
+        yield item as ReviewModel;
+      }
+    } while (lastEvaluatedKey !== undefined);
   }
 
-  loadReview(productId: string, reviewId: string): Promise<ReviewModel | null> {
+  async load(productId: string, reviewId: string): Promise<ReviewModel | null> {
     const pk = this.buildReviewPk(productId);
-    const idBuff = Buffer.alloc(8);
-    idBuff.write(reviewId, 'hex');
-    const sk = idBuff.readBigUInt64LE();
-    return this.load(pk, sk);
+    const result = await this.ddb.send(
+      new GetCommand({
+        Key: {
+          pk,
+          sk: reviewId,
+        },
+        TableName: env.DDB_TABLE_NAME,
+      })
+    );
+    return (result.Item as ReviewModel) ?? null;
   }
 }
