@@ -38,6 +38,7 @@ export class PipelineStack extends cdk.Stack {
       dockerEnabledForSynth: true,
       dockerEnabledForSelfMutation: true,
       publishAssetsInParallel: false,
+      cliVersion: "2.99.1",
     });
 
     this.addSubgraphsStage(pipeline, props.graphId, "dev");
