@@ -5,6 +5,7 @@ ARG SUBGRAPH_NAME
 COPY subgraphs/${SUBGRAPH_NAME} /app
 WORKDIR /app
 COPY subgraphs/${SUBGRAPH_NAME}/schema.graphql ./
+RUN npm install
 RUN npm run gql
 RUN npm run build
 
