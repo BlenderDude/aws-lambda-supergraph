@@ -53,7 +53,7 @@ export class ReviewRepository {
       const result: QueryCommandOutput = await this.ddb.send(
         new QueryCommand({
           TableName: env.DDB_TABLE_NAME,
-          FilterExpression: "#pk = :pk AND #sk > :sk",
+          KeyConditionExpression: "#pk = :pk AND #sk > :sk",
           ExpressionAttributeNames: {
             "#pk": "pk",
             "#sk": "sk",
