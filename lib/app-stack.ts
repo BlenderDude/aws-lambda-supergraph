@@ -38,9 +38,10 @@ export class AppStack extends cdk.Stack {
 
     this.httpApi = new apigwv2.HttpApi(this, "HttpApi", {
       defaultAuthorizer: authorizer,
+      createDefaultStage: false,
     });
 
-    this.defaultStage = this.httpApi.addStage(props.variant, {});
+    this.defaultStage = this.httpApi.addStage("MainStage", {});
 
     // Products Subgraph
     this.createSubgraph("products", {});
