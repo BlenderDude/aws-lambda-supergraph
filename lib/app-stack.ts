@@ -60,15 +60,6 @@ export class AppStack extends cdk.Stack {
     });
 
     jwtSecret.grantRead(usersSubgraph.fn);
-
-    const routerToken = crypto
-      .createHmac("sha256", jwtSecret.secretValue.unsafeUnwrap())
-      .update("router-token")
-      .digest("hex");
-
-    new cdk.CfnOutput(this, "RouterToken", {
-      value: routerToken,
-    });
   }
 
   createSubgraph(

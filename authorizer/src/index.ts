@@ -27,6 +27,7 @@ function validateRouterToken(providedToken: string, secret: string) {
       .digest();
     const providedTokenBuffer = Buffer.from(providedToken, "hex");
     if (providedTokenBuffer.length !== routerToken.length) {
+      console.log("Unequal token lengths");
       return false;
     }
 
