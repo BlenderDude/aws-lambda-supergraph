@@ -3,7 +3,7 @@ import * as apigwv2 from "@aws-cdk/aws-apigatewayv2-alpha";
 import * as apigwv2auth from "@aws-cdk/aws-apigatewayv2-authorizers-alpha";
 import * as apigwv2int from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
 import { Construct } from "constructs";
-import { AuthorizerStack } from "./substacks/authentication-stack";
+import { AuthorizerStack } from "./substacks/authorizer-stack";
 import { LambdaSubgraph } from "./substacks/lambda-subgraph-stack";
 import * as crypto from "crypto";
 
