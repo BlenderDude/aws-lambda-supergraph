@@ -43,6 +43,7 @@ export const handler: APIGatewayRequestSimpleAuthorizerHandlerV2WithContext<{
   const secret = await getSecret();
 
   if (!validateRouterToken(e.headers?.["X-Router-Token"] ?? "", secret)) {
+    console.log("Failing on bad router token");
     return {
       isAuthorized: false,
       context: {
