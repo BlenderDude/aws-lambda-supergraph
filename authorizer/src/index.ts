@@ -19,11 +19,22 @@ async function getSecret() {
   return SecretString!;
 }
 
-function validateRouterToken(token: string, secret: string) {
-  return crypto.timingSafeEqual(
-    crypto.createHash("sha256").update(token).digest(),
-    crypto.createHash("sha256").update(secret).digest()
-  );
+function validateRouterToken(providedToken: string, secret: string) {
+  try {
+    const routerToken = crypto
+      .createHmac("sha256", secret)
+      .update("router-token")
+      .digest();
+    const providedTokenBuffer = Buffer.from(providedToken, "hex");
+    if (providedTokenBuffer.length !== routerToken.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(routerToken, providedTokenBuffer);
+  } catch (e) {
+    console.log(e);
+    return false;
+  }
 }
 
 export const handler: APIGatewayRequestSimpleAuthorizerHandlerV2WithContext<{

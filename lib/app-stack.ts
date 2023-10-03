@@ -5,6 +5,7 @@ import * as apigwv2int from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
 import { Construct } from "constructs";
 import { AuthorizerStack } from "./substacks/authentication-stack";
 import { LambdaSubgraph } from "./substacks/lambda-subgraph-stack";
+import * as crypto from "crypto";
 
 interface AppStackProps extends cdk.StackProps {
   variant: string;
@@ -59,6 +60,15 @@ export class AppStack extends cdk.Stack {
     });
 
     jwtSecret.grantRead(usersSubgraph.fn);
+
+    const routerToken = crypto
+      .createHmac("sha256", jwtSecret.secretValue.toString())
+      .update("router-token")
+      .digest("hex");
+
+    new cdk.CfnOutput(this, "RouterToken", {
+      value: routerToken,
+    });
   }
 
   createSubgraph(
