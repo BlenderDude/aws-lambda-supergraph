@@ -41,7 +41,9 @@ export class AppStack extends cdk.Stack {
       createDefaultStage: false,
     });
 
-    this.defaultStage = this.httpApi.addStage("MainStage", {});
+    this.defaultStage = this.httpApi.addStage("MainStage", {
+      autoDeploy: true,
+    });
 
     // Products Subgraph
     this.createSubgraph("products", {});
