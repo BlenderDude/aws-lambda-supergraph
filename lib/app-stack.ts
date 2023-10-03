@@ -82,7 +82,7 @@ export class AppStack extends cdk.Stack {
     });
 
     const url = new cdk.CfnOutput(this, subgraphName + "Url", {
-      value: this.defaultStage.url + path,
+      value: this.defaultStage.url.slice(0, -1) + path,
     });
 
     this.subgraphs.set(subgraphName, { url });
