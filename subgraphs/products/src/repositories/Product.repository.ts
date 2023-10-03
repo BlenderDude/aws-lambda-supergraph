@@ -104,6 +104,6 @@ export class ProductRepository {
   }
 
   getId(model: ProductModel) {
-    return model.sk.split("#")[1];
+    return model.pk.split("#")[1];
   }
 }
