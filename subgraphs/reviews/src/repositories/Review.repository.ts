@@ -60,7 +60,7 @@ export class ReviewRepository {
           },
           ExpressionAttributeValues: {
             ":pk": pk,
-            ":sk": startFrom ?? "",
+            ":sk": startFrom ?? "0",
           },
           ExclusiveStartKey: lastEvaluatedKey,
         })
