@@ -121,7 +121,7 @@ const resolvers: Resolvers = {
         style: "currency",
         currency: "USD",
         minimumFractionDigits: precision,
-      }).format(amount);
+      }).format(amount / 100);
     },
   },
 };

@@ -16,7 +16,7 @@ type ReviewEdge {
 }
 
 type ReviewConnection {
-  pageInfo: PageInfo!
+  pageInfo: ForwardPageInfo!
   edges: [ReviewEdge!]!
 }
 
@@ -35,7 +35,7 @@ type ProductMutation @key(fields: "id") {
   addReview(review: ReviewInput!): Review!
 }
 
-type PageInfo @shareable {
+type ForwardPageInfo @shareable {
   hasNextPage: Boolean!
   endCursor: String
 }
