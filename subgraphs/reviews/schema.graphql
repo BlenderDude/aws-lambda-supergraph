@@ -39,6 +39,12 @@ input ReviewInput {
 type ProductMutation @key(fields: "id") {
   id: ID!
   addReview(review: ReviewInput!): Review!
+  review(id: ID!): ReviewMutation
+}
+
+type ReviewMutation @key(fields: "id") {
+  id: ID!
+  delete: Boolean!
 }
 
 type ForwardPageInfo @shareable {

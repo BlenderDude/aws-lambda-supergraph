@@ -87,6 +87,21 @@ const resolvers: Resolvers = {
       });
       return review;
     },
+    review: async ({ id }, args, ctx) => {
+      const [productId, reviewId] = Buffer.from(id, "base64url")
+        .toString()
+        .split(":");
+      return await ctx.repositories.review.load(productId, reviewId);
+    },
+  },
+  ReviewMutation: {
+    delete: async (review, args, ctx) => {
+      if (ctx.session.userId !== review.userId) {
+        throw new Error("Unauthorized");
+      }
+      await ctx.repositories.review.delete(review);
+      return true;
+    },
   },
   DateTime: {
     iso8601: (date) => date,

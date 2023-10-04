@@ -1,4 +1,5 @@
 import {
+  DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
@@ -46,6 +47,18 @@ export class ReviewRepository {
       })
     );
     return model;
+  }
+
+  async delete(model: ReviewModel) {
+    await this.ddb.send(
+      new DeleteCommand({
+        TableName: env.DDB_TABLE_NAME,
+        Key: {
+          pk: model.pk,
+          sk: model.sk,
+        },
+      })
+    );
   }
 
   async *loadAll(

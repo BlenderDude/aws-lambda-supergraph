@@ -10,6 +10,7 @@ const config: CodegenConfig = {
         federation: true,
         mappers: {
           Review: "../repositories/Review.repository#ReviewModel",
+          ReviewMutation: "../repositories/Review.repository#ReviewModel",
           DateTime: "string",
         },
         contextType: "../context#ResolverContext",
