@@ -39,6 +39,9 @@ input ReviewInput {
 type ProductMutation @key(fields: "id") {
   id: ID!
   addReview(review: ReviewInput!): Review!
+}
+
+type Mutation {
   review(id: ID!): ReviewMutation
 }
 

@@ -87,12 +87,6 @@ const resolvers: Resolvers = {
       });
       return review;
     },
-    review: async ({ id }, args, ctx) => {
-      const [productId, reviewId] = Buffer.from(id, "base64url")
-        .toString()
-        .split(":");
-      return await ctx.repositories.review.load(productId, reviewId);
-    },
   },
   ReviewMutation: {
     delete: async (review, args, ctx) => {
@@ -101,6 +95,14 @@ const resolvers: Resolvers = {
       }
       await ctx.repositories.review.delete(review);
       return true;
+    },
+  },
+  Mutation: {
+    review: async (_, { id }, ctx) => {
+      const [productId, reviewId] = Buffer.from(id, "base64url")
+        .toString()
+        .split(":");
+      return await ctx.repositories.review.load(productId, reviewId);
     },
   },
   DateTime: {
