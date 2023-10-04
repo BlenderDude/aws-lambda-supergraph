@@ -24,6 +24,10 @@ export class ReviewRepository {
     return `ProductReview#${productId}`;
   }
 
+  getProductIdFromPk(pk: string) {
+    return pk.replace(/^ProductReview#/, "");
+  }
+
   async create(modelInput: Omit<ReviewModel, "pk" | "sk">) {
     const pk = this.buildReviewPk(modelInput.productId);
     const sk = Buffer.alloc(8);

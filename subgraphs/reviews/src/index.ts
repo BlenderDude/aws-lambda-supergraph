@@ -48,8 +48,19 @@ const resolvers: Resolvers = {
     },
   },
   Review: {
+    __resolveReference: async (review, ctx) => {
+      const { id } = review as unknown as { id: string };
+      const [productId, reviewId] = Buffer.from(id, "base64url")
+        .toString()
+        .split(":");
+      const result = await ctx.repositories.review.load(productId, reviewId);
+      return result;
+    },
     id: (review, _, ctx) => {
-      const id = review.pk + ":" + review.sk;
+      const id = [
+        ctx.repositories.review.getProductIdFromPk(review.pk),
+        review.sk,
+      ].join(":");
       return Buffer.from(id).toString("base64url");
     },
     body: (review) => review.body,
