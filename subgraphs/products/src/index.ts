@@ -15,6 +15,7 @@ import {
 import { ResolverContext } from "./context";
 import { ddbClient } from "./ddb";
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from "aws-lambda";
+import { formatDistanceToNow } from "date-fns";
 
 // A map of functions which return data for the schema.
 const resolvers: Resolvers = {
@@ -50,6 +51,7 @@ const resolvers: Resolvers = {
       return await ctx.repositories.product.create({
         ...product,
         createdByUserId: ctx.session.userId,
+        createdAt: new Date().toISOString(),
       });
     },
     product: async (_, { id }, ctx) => {
@@ -104,6 +106,22 @@ const resolvers: Resolvers = {
         __typename: "User",
         id: product.createdByUserId,
       };
+    },
+  },
+  DateTime: {
+    iso8601: (date) => date,
+    distanceToNow: (date) => {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
+    },
+  },
+  Currency: {
+    amount: (amount) => amount,
+    formatted: (amount, { precision }) => {
+      return Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: precision,
+      }).format(amount);
     },
   },
 };

@@ -15,6 +15,7 @@ export type ProductModel = {
   name: string;
   price: number;
   createdByUserId: string;
+  createdAt: string;
 };
 
 export class ProductRepository {

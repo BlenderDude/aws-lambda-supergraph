@@ -1,8 +1,19 @@
 type Product @key(fields: "id") {
   id: ID!
   name: String!
-  price: Int!
+  price: Currency!
   createdBy: User!
+  createdAt: DateTime!
+}
+
+type Currency @shareable {
+  amount: Int!
+  formatted(precision: Int! = 2): String!
+}
+
+type DateTime @shareable {
+  iso8601: String!
+  distanceToNow: String!
 }
 
 type User @key(fields: "id", resolvable: false) {
