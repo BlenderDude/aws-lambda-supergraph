@@ -4,6 +4,12 @@ type Review @key(fields: "id") {
   rating: Int!
   product: Product!
   user: User!
+  createdAt: DateTime!
+}
+
+type DateTime @shareable {
+  iso8601: String!
+  distanceToNow: String!
 }
 
 type User @key(fields: "id", resolvable: false) {

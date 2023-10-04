@@ -15,6 +15,7 @@ export type ReviewModel = {
   rating: number;
   productId: string;
   userId: string;
+  createdAt: string;
 };
 
 export class ReviewRepository {

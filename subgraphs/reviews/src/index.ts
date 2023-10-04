@@ -15,6 +15,7 @@ import {
   ReviewRepository,
 } from "./repositories/Review.repository";
 import type { APIGatewayProxyEventV2WithLambdaAuthorizer } from "aws-lambda";
+import { formatDistanceToNow } from "date-fns";
 
 // A map of functions which return data for the schema.
 const resolvers: Resolvers = {
@@ -82,8 +83,15 @@ const resolvers: Resolvers = {
         productId: id,
         rating: args.review.rating,
         userId: ctx.session.userId,
+        createdAt: new Date().toISOString(),
       });
       return review;
+    },
+  },
+  DateTime: {
+    iso8601: (date) => date,
+    distanceToNow: (date) => {
+      return formatDistanceToNow(new Date(date), { addSuffix: true });
     },
   },
 };
